@@ -1,0 +1,9 @@
+*.log
+node_modules/
+out/
+.idea/
+dist/
+*.iml
+
+# Dev config
+scrubjay.conf.json

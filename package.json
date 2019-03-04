@@ -1,0 +1,29 @@
+{
+  "author": {
+    "name": "Rick Osborne",
+    "url": "https://rickosborne.org"
+  },
+  "dependencies": {
+    "@types/ejs": "^2.6.3",
+    "@types/twitter": "^1.7.0",
+    "ejs": "^2.6.1",
+    "feed": "^2.0.4",
+    "mysql2": "^1.6.5",
+    "twitter": "^1.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^11.10.0",
+    "tslint": "^5.13.1",
+    "typescript": "^3.3.3333",
+    "wtfnode": "^0.8.0"
+  },
+  "name": "scrubjay",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "prebuild": "tslint -c tslint.json -p tsconfig.json --fix",
+    "prestart": "npm run build",
+    "start": "node $NODE_DEBUG_OPTION dist/out-tsc/scrubjay.js"
+  },
+  "version": "0.1.0"
+}
