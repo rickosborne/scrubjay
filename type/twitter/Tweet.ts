@@ -37,18 +37,6 @@ const renderTweetHtml = ejs.compile(`
 
 export class Tweet {
 
-  static fromObject(object: {}): Tweet {
-    return buildFromObject(Tweet, object)
-      .string('text', true)
-      .obj('user', TwitterUser, true)
-      .string('id_str', true)
-      .date('created_at', false)
-      .obj('extended_tweet', ExtendedTweet, false)
-      .orNull();
-  }
-
-  private readonly _text: string;
-
   constructor(
     text: string,
     public readonly user: TwitterUser,
@@ -59,8 +47,6 @@ export class Tweet {
     this._text = (extended != null && extended.text != null) ? extended.text : text;
   }
 
-  private _html: string;
-
   get html() {
     if (this._html == null) {
       this._html = renderTweetHtml({
@@ -69,8 +55,6 @@ export class Tweet {
     }
     return this._html;
   }
-
-  private _textAsHtml: string;
 
   // noinspection JSUnusedGlobalSymbols
   get textAsHtml() {
@@ -97,5 +81,21 @@ export class Tweet {
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&')
       ;
+  }
+
+  private readonly _text: string;
+
+  private _html: string;
+
+  private _textAsHtml: string;
+
+  static fromObject(object: {}): Tweet {
+    return buildFromObject(Tweet, object)
+      .string('text', true)
+      .obj('user', TwitterUser, true)
+      .string('id_str', true)
+      .date('created_at', false)
+      .obj('extended_tweet', ExtendedTweet, false)
+      .orNull();
   }
 }

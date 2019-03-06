@@ -50,22 +50,11 @@ export class Command {
     return (this.parent == null ? '' : (this.parent.path + ' ')) + (this.literal || ('$' + this.paramName));
   }
 
-  public endCommand(): SlackClient {
-    return this.client;
-  }
-
-  public endParam(): Command {
-    return this.parent;
-  }
-
-  public endSubcommand(): Command {
-    return this.parent;
-  }
-
-  public param(name: string, helpText?: string): Command {
+  public param(name: string, helpText: string = null, callback: (subcommand: Command) => void): this {
     const command = new Command(this.client, null, name, null, helpText, this);
     this.children.push(command);
-    return command;
+    callback(command);
+    return this;
   }
 
   public reply(eventuallyString: EventuallyString, thread: boolean = false): this {
@@ -73,10 +62,11 @@ export class Command {
     return this;
   }
 
-  public subcommand(name: string, helpText?: string): Command {
+  public subcommand(name: string, helpText: string = null, callback: (subcommand: Command) => void): this {
     const command = new Command(this.client, name, null, null, helpText, this);
     this.children.push(command);
-    return command;
+    callback(command);
+    return this;
   }
 }
 
@@ -93,10 +83,11 @@ export class SlackClient {
     this.web = new WebClient(this.oauth);
   }
 
-  public command(key: string | RegExp, helpText: string = null): Command {
+  public command(key: string | RegExp, helpText: string = null, callback?: (command: Command) => void): this {
     const command = new Command(this, typeof key === 'string' ? key : null, null, key instanceof RegExp ? key : null, helpText);
     this.commands.push(command);
-    return command;
+    callback(command);
+    return this;
   }
 
   public help(key: string | RegExp): this {
