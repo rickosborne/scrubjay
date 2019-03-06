@@ -1,4 +1,4 @@
-import {MysqlClient} from './MysqlClient';
+import {MysqlClient} from '../MysqlClient';
 
 export class TwitterEventStore extends MysqlClient {
   save(event: {} = null) {

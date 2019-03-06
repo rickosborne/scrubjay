@@ -46,6 +46,21 @@ class Schema extends MysqlClient {
         data JSON NOT NULL
       )
       ;
+    `).thenQuery(`
+      CREATE TABLE IF NOT EXISTS slack_feed (
+        channel_id VARCHAR(40) NOT NULL PRIMARY KEY,
+        channel_name VARCHAR(40) NOT NULL
+      )
+      ;
+    `).thenQuery(`
+      CREATE TABLE IF NOT EXISTS slack_feed_twitter (
+        slack_channel_id VARCHAR(40) NOT NULL,
+        twitter_username VARCHAR(40) NOT NULL,
+        PRIMARY KEY (slack_channel_id, twitter_username),
+        FOREIGN KEY FK_slack_feed_twitter_channel (slack_channel_id) REFERENCES slack_feed (channel_id),
+        FOREIGN KEY FK_slack_feed_twitter_username (twitter_username) REFERENCES twitter_follow (username)
+      )
+      ;
     `).onResults(() => {
       env.debug('Schema migration complete');
       this.ready = true;

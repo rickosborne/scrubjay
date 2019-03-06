@@ -2,6 +2,7 @@ import * as mysql2 from 'mysql2';
 import {config} from './Config';
 import env from '../lib/env';
 import {FromObject} from './FromObject';
+import {unindent} from '../lib/unindent';
 
 type ResultSetCallback = (rows: object[]) => void;
 type ErrorCallback = (err: Error) => void;
@@ -38,18 +39,16 @@ export class QueryImpl {
         }
         return;
       }
-      env.debug(() => {
-        const lines = [`SQL: ${this.sql}`];
-        if (this.params != null && this.params.length > 0) {
-          lines.push(`Params: ${JSON.stringify(this.params)}`);
-        }
-        if (rows != null && rows.length > 0) {
+      if (rows != null && rows.length > 0) {
+        env.debug(() => {
+          const lines = [`SQL: ${unindent(this.sql)}`];
+          if (this.params != null && this.params.length > 0) {
+            lines.push(`Params: ${JSON.stringify(this.params)}`);
+          }
           lines.push(`Rows: ${rows.length}`);
-        } else {
-          lines.push(`No results`);
-        }
-        return lines.join('\n');
-      });
+          return lines.join('\n');
+        });
+      }
       this.rows = rows;
       if (this._onResults != null) {
         this._onResults(rows);
@@ -119,7 +118,10 @@ export abstract class MysqlClient {
       this.query(sql, params)
         .onError(err => reject(err))
         .onResults(rows => {
-          resolve((rows || []).map(row => type.fromObject(row)));
+          resolve((rows || []).map(row => {
+            const obj = type.fromObject(row);
+            return obj;
+          }));
         });
     });
   }

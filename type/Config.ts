@@ -60,6 +60,31 @@ export class TwitterConfig extends Jsonable {
   }
 }
 
+export class SlackConfig {
+  static fromObject(object: {}): SlackConfig {
+    return buildFromObject(SlackConfig, object)
+      .string('appId')
+      .string('clientId')
+      .string('token')
+      .string('signingSecret')
+      .string('verificationToken')
+      .string('oauth')
+      .string('botOAuth')
+      .orThrow(message => new Error(`Could not configure Slack: ${message}`));
+  }
+
+  constructor(
+    public readonly appId: string,
+    public readonly clientId: string,
+    public readonly token: string,
+    public readonly signingSecret: string,
+    public readonly verificationToken: string,
+    public readonly oauth: string,
+    public readonly botOAuth: string,
+  ) {
+  }
+}
+
 export class Config extends Jsonable {
   // noinspection JSUnusedGlobalSymbols
   static fromObject(object: {}): Config {
@@ -68,6 +93,7 @@ export class Config extends Jsonable {
       .string('baseUrl')
       .obj('twitter', TwitterConfig)
       .obj('mysql', MysqlConfig)
+      .obj('slack', SlackConfig)
       .orThrow(message => new Error(`Could not build Config: ${message}`));
   }
 
@@ -76,6 +102,7 @@ export class Config extends Jsonable {
     public readonly baseUrl: string,
     public readonly twitter: TwitterConfig,
     public readonly mysql: MysqlConfig,
+    public readonly slack: SlackConfig,
   ) {
     super();
   }

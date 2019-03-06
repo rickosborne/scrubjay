@@ -1,3 +1,5 @@
+import env from '../lib/env';
+
 export interface FromObject<T> {
   fromObject: ({}) => T;
   name: string;
@@ -16,6 +18,8 @@ export interface Builder<T> {
 
   obj<U>(name: string, type: FromObject<U>, required?: boolean): Builder<T>;
 
+  orLog(): T | null;
+
   orNull(): T | null;
 
   orThrow(thrower: (message?: string) => Error): T;
@@ -28,7 +32,14 @@ export interface Builder<T> {
 }
 
 export class Nope<T> implements Builder<T> {
-  constructor(public readonly message?: string) {
+  // noinspection JSUnusedGlobalSymbols
+  constructor(
+    public readonly message?: string,
+    public readonly name?: string,
+    public readonly typeName?: string,
+    public readonly required?: boolean,
+    public readonly ctorName?: string,
+  ) {
   }
 
   bool(name: string, required?: boolean): Builder<T> {
@@ -49,6 +60,11 @@ export class Nope<T> implements Builder<T> {
 
   obj<U>(name: string, type: FromObject<U>, required?: boolean): this {
     return this;
+  }
+
+  orLog(): T | null {
+    env.debug(() => `!! Could not build: ${JSON.stringify(this)}`);
+    return null;
   }
 
   orNull(): T | null {
@@ -95,7 +111,8 @@ export class Maybe<T> implements Builder<T> {
   private extract(name: string | string[], typeName: string, required: boolean, tester: (o: {}) => boolean, converter?: (o: {}) => {}) {
     const names: string[] = Array.isArray(name) ? name : [name];
     let value;
-    for (const _name of names) {
+    let _name;
+    for (_name of names) {
       value = this.object[_name];
       if (value != null) {
         break;
@@ -103,17 +120,17 @@ export class Maybe<T> implements Builder<T> {
     }
     if (value == null) {
       if (required) {
-        return new Nope<T>(`Missing required ${typeName} for ${names}`);
+        return new Nope<T>(`Missing required ${typeName} for ${names}`, _name, typeName, required, this.ctor.name);
       }
       this.args.push(null);
       return this;
     } else if (!tester(value)) {
-      return new Nope<T>(`Expected ${typeName} for ${names}`);
+      return new Nope<T>(`Expected ${typeName} for ${names} found ${typeof value}`, _name, typeName, required, this.ctor.name);
     }
     if (converter != null) {
       value = converter(value);
       if (value == null && required) {
-        return new Nope<T>(`Could not read ${typeName}`);
+        return new Nope<T>(`Could not read ${typeName}`, _name, typeName, required, this.ctor.name);
       }
     }
     this.args.push(value);
@@ -130,6 +147,10 @@ export class Maybe<T> implements Builder<T> {
 
   obj<U>(name: string, type: FromObject<U>, required?: boolean): Builder<T> {
     return this.extract(name, type.name, required, v => typeof v === 'object', (v: object) => type.fromObject(v));
+  }
+
+  orLog(): T {
+    return this.orNull();
   }
 
   orNull(): T {
@@ -156,7 +177,7 @@ export class Maybe<T> implements Builder<T> {
 
 export function buildFromObject<T>(ctor: Constructor<T>, object: {}): Builder<T> {
   if (object == null || typeof object !== 'object') {
-    return new Nope<T>(`Null or not an object: ${typeof object}`);
+    return new Nope<T>(`Null or not an object: ${typeof object}`, null, null, null, ctor.name);
   }
   return new Maybe<T>(ctor, object);
 }

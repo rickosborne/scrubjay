@@ -1,7 +1,7 @@
 import {MysqlClient} from './MysqlClient';
 import {buildFromObject} from './FromObject';
-import {Tweet} from './TwitterClient';
-import {tweetStore} from './TweetStore';
+import {Tweet} from './twitter/Tweet';
+import {tweetStore} from './twitter/TweetStore';
 
 export class Identity {
   // noinspection JSUnusedGlobalSymbols

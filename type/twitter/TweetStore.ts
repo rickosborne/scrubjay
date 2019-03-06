@@ -1,6 +1,7 @@
-import {Tweet, TwitterUser} from './TwitterClient';
-import {MysqlClient} from './MysqlClient';
-import {Identity} from './Identity';
+import {Tweet} from './Tweet';
+import {MysqlClient} from '../MysqlClient';
+import {Identity} from '../Identity';
+import {TwitterUser} from './TwitterUser';
 
 export class TweetStore extends MysqlClient {
   constructor() {

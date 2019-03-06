@@ -4,6 +4,7 @@
     "url": "https://rickosborne.org"
   },
   "dependencies": {
+    "@slack/client": "^4.10.0",
     "@types/ejs": "^2.6.3",
     "@types/twitter": "^1.7.0",
     "ejs": "^2.6.1",
