@@ -45,7 +45,7 @@ export class TweetStore extends MysqlClient {
       tweet.user.name,
       tweet.created,
       tweet.text,
-      tweet.html
+      null,
     ]);
   }
 }

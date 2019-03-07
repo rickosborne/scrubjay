@@ -8,6 +8,8 @@ type ResultSetCallback = (rows: object[]) => void;
 type ErrorCallback = (err: Error) => void;
 
 interface Query {
+  promise: Promise<object[]>;
+
   onError(callback: ErrorCallback): this;
 
   onResults(callback: ResultSetCallback): this;
@@ -27,6 +29,17 @@ export class QueryImpl {
     public readonly sql: string,
     public readonly params: any[]
   ) {
+  }
+
+  get promise(): Promise<object[]> {
+    if (this.rows == null) {
+      return new Promise((resolve, reject) => this
+        .onResults(rows => resolve(rows))
+        .onError(reason => reject(reason))
+      );
+    } else {
+      return Promise.resolve(this.rows);
+    }
   }
 
   execute(): void {

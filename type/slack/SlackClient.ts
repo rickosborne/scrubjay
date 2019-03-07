@@ -1,3 +1,4 @@
+import * as slack from '@slack/client';
 import {RTMClient, WebClient} from '@slack/client';
 import {config, SlackConfig} from '../Config';
 import env from '../../lib/env';
@@ -5,21 +6,23 @@ import {RTMConnectResult} from './RTMConnectResult';
 import {DirectMessage} from './DirectMessage';
 import {SlackId, SlackTimestamp} from './RTEvent';
 import {trim} from '../../lib/trim';
-import {FeedChannel, slackFeedStore} from './FeedStore';
 import {Channel} from './Channel';
 import {WebChannelsListResult} from './WebChannelsListResult';
 
 interface OnMessageActions {
   channel(name: string): Promise<Channel>;
 
-  reply(text: string, thread?: boolean): Promise<void>;
+  reply(text: string | slack.KnownBlock[], thread?: boolean): Promise<void>;
 
   typing(): this;
 }
 
 type OnSlackMessage = (message: DirectMessage, actions: OnMessageActions, ...parts: string[]) => boolean | void;
 type StringFromMessage = (message: DirectMessage, actions: OnMessageActions, ...parts: string[]) => string | Promise<string>;
+type BlocksFromMessage = (message: DirectMessage, actions: OnMessageActions, ...parts: string[])
+  => slack.KnownBlock[] | Promise<slack.KnownBlock[]>;
 type EventuallyString = string | StringFromMessage | Promise<string>;
+type EventuallyBlocks = slack.KnownBlock[] | Promise<slack.KnownBlock[]> | BlocksFromMessage;
 
 function regexify(stringOrPattern: string | RegExp): RegExp {
   return stringOrPattern instanceof RegExp ? stringOrPattern : new RegExp(stringOrPattern, 'i');
@@ -48,6 +51,11 @@ export class Command {
 
   get path(): string {
     return (this.parent == null ? '' : (this.parent.path + ' ')) + (this.literal || ('$' + this.paramName));
+  }
+
+  public blockReply(eventuallyBlocks: EventuallyBlocks, thread: boolean = false): this {
+    this.client.replyBlocks(this.matcher, eventuallyBlocks, thread);
+    return this;
   }
 
   public param(name: string, helpText: string = null, callback: (subcommand: Command) => void): this {
@@ -81,6 +89,37 @@ export class SlackClient {
   constructor(cfg: SlackConfig) {
     this.oauth = cfg.botOAuth;
     this.web = new WebClient(this.oauth);
+  }
+
+  private blockReplier(messageSupplier: EventuallyBlocks, thread: boolean = false): OnSlackMessage {
+    return (message, actions, ...args) => {
+      this.blockify(messageSupplier, message, ...args).then(blocks => {
+        if (blocks != null) {
+          actions.reply(blocks, thread)
+            .catch(reason => env.debug(() => `Could not deliver reply: ${reason}`));
+        }
+      });
+    };
+  }
+
+  private blockify(s: EventuallyBlocks, message: DirectMessage, ...args): Promise<slack.KnownBlock[] | null> {
+    let result = s;
+    do {
+      const previous = result;
+      if (Array.isArray(result)) {
+        return Promise.resolve(result);
+      }
+      if (result instanceof Promise) {
+        return result;
+      }
+      if (typeof result === 'function') {
+        result = result(message, this.messageActions(message), ...args);
+      }
+      if (previous === result) {
+        env.debug(() => `Never resolved: ${JSON.stringify(result)}`);
+        return Promise.resolve(null);
+      }
+    } while (true);
   }
 
   public command(key: string | RegExp, helpText: string = null, callback?: (command: Command) => void): this {
@@ -161,11 +200,44 @@ export class SlackClient {
   }
 
   public otherwise(messageSupplier: EventuallyString): this {
-    this.onMessage(this.replier(messageSupplier));
+    this.onMessage(this.simpleReplier(messageSupplier));
     return this;
   }
 
-  private replier(messageSupplier: EventuallyString, thread: boolean = false): OnSlackMessage {
+  public replyBlocks(regex: RegExp, messageSupplier: EventuallyBlocks, thread: boolean = false): this {
+    this.onMessageMatch(regex, this.blockReplier(messageSupplier, thread));
+    return this;
+  }
+
+  public replyTo(regex: RegExp, messageSupplier: EventuallyString, thread: boolean = false): this {
+    this.onMessageMatch(regex, this.simpleReplier(messageSupplier, thread));
+    return this;
+  }
+
+  public send(text: string | slack.KnownBlock[], to: SlackId, threadTimestamp?: SlackTimestamp): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // const escaped = text
+      //   .replace(/&/g, '&amp;')
+      //   .replace(/</g, '&lt;')
+      //   .replace(/>/g, '&gt;')
+      // ;
+      const message = {
+        blocks: Array.isArray(text) ? text : undefined,
+        text: typeof text === 'string' ? text : undefined,
+        channel: to,
+        thread_ts: threadTimestamp == null ? null : threadTimestamp
+      };
+      this.web.chat.postMessage(message).then(result => {
+        if (result.ok) {
+          resolve();
+        } else {
+          reject(result.error);
+        }
+      });
+    });
+  }
+
+  private simpleReplier(messageSupplier: EventuallyString, thread: boolean = false): OnSlackMessage {
     return (message, actions, ...args) => {
       this.stringify(messageSupplier, message, ...args).then(text => {
         if (text != null) {
@@ -174,32 +246,6 @@ export class SlackClient {
         }
       });
     };
-  }
-
-  public replyTo(regex: RegExp, messageSupplier: EventuallyString, thread: boolean = false): this {
-    this.onMessageMatch(regex, this.replier(messageSupplier, thread));
-    return this;
-  }
-
-  public send(text: string, to: SlackId, threadTimestamp?: SlackTimestamp): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // const escaped = text
-      //   .replace(/&/g, '&amp;')
-      //   .replace(/</g, '&lt;')
-      //   .replace(/>/g, '&gt;')
-      // ;
-      this.web.chat.postMessage({
-        text: text,
-        channel: to,
-        thread_ts: threadTimestamp == null ? null : threadTimestamp
-      }).then(result => {
-        if (result.ok) {
-          resolve();
-        } else {
-          reject(result.error);
-        }
-      });
-    });
   }
 
   public start(): Promise<void> {

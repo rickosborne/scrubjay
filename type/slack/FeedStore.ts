@@ -72,6 +72,15 @@ export class FeedStore extends MysqlClient {
       WHERE (sft.slack_channel_id = ?)
     `, [channel.id]);
   }
+
+  channelsFor(user: TwitterUser): Promise<FeedChannel[]> {
+    return this.findObjects(FeedChannel, `
+      SELECT sf.channel_id, sf.channel_name
+      FROM slack_feed_twitter AS sft
+        INNER JOIN slack_feed AS sf ON (sft.slack_channel_id = sf.channel_id)
+      WHERE (sft.twitter_username = ?)
+    `, [user.name]);
+  }
 }
 
 export const slackFeedStore = new FeedStore();

@@ -12,7 +12,7 @@ export interface Builder<T> {
 
   date(name: string, required?: boolean): Builder<T>;
 
-  list<U>(name: string, type: FromObject<U>, required?: boolean): Builder<T>;
+  list<U>(name: string, type: FromObject<U> | string, required?: boolean): Builder<T>;
 
   num(name: string, required?: boolean): Builder<T>;
 
@@ -24,7 +24,7 @@ export interface Builder<T> {
 
   orThrow(thrower: (message?: string) => Error): T;
 
-  scalar(name: string, type: string, required?: boolean): Builder<T>;
+  scalar(name: string | string[], type: string, required?: boolean): Builder<T>;
 
   skip(): this;
 
@@ -137,8 +137,14 @@ export class Maybe<T> implements Builder<T> {
     return this;
   }
 
-  list<U>(name: string, type: FromObject<U>, required: boolean = true): Builder<T> {
-    return this.extract(name, type.name, required, v => Array.isArray(v), (v: object[]) => v.map(i => type.fromObject(i)));
+  list<U>(name: string, type: FromObject<U> | string, required: boolean = true): Builder<T> {
+    return this.extract(
+      name,
+      typeof type === 'string' ? type : type.name,
+      required,
+      v => Array.isArray(v),
+      typeof type === 'string' ? null : (v: object[]) => v.map(i => type.fromObject(i))
+    );
   }
 
   num(name: string, required?: boolean): Builder<T> {
@@ -161,7 +167,7 @@ export class Maybe<T> implements Builder<T> {
     return this.orNull();
   }
 
-  scalar(name: string, type?: string, required: boolean = true): Builder<T> {
+  scalar(name: string | string[], type?: string, required: boolean = true): Builder<T> {
     return this.extract(name, type || '(any)', required, o => type == null || typeof o === type);
   }
 

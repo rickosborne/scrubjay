@@ -9,19 +9,25 @@ import {tweetStore} from './type/twitter/TweetStore';
 import {slackClient} from './type/slack/SlackClient';
 import {FeedChannel, slackFeedStore} from './type/slack/FeedStore';
 import {twitterUserStore} from './type/twitter/TwitterUser';
+import {twitterEventStore} from './type/twitter/TwitterEventStore';
+import {slackTweetFormatter} from './type/slack/SlackTweetFormatter';
 // import * as wtfnode from 'wtfnode';
 
 migrator.onReady(() => {
   tweetStore.follows()
     .then(users => {
       twitterClient.addUsers(...users);
-      twitterClient.onTweet(tweet => {
-        tweet.user.identity.then(identity => {
-          if (identity != null) {
-            // feedWriter.publish(identity);
+      twitterClient.onTweet(tweet => slackFeedStore
+        .channelsFor(tweet.user).then(channels => {
+          const blocks = slackTweetFormatter.blockify(tweet);
+          env.debug(() => `#${channels.join('|#')} ${JSON.stringify(blocks)}`);
+          for (const channel of channels) {
+            slackClient
+              .send(blocks, channel.id)
+              .catch(reason => env.debug(`Could not forward tweet: ${JSON.stringify(reason)}`));
           }
-        });
-      });
+        })
+      );
       twitterClient.connect();
     });
   slackClient
@@ -82,10 +88,37 @@ migrator.onReady(() => {
         )
       )
     )
+    .command('follows', 'Show the twitterers I\'m following', command => command
+      .reply(() => tweetStore.follows()
+        .then(follows => {
+          if (follows == null || follows.length === 0) {
+            return `I'm not currently following anyone.`;
+          }
+          return `I'm following: ${follows.map(user => user.name).map(name => slackTweetFormatter.userLink(name)).join(' ')}`;
+        })
+      )
+    )
+    .command('latest tweet', 'Show the latest tweet I\'ve tracked', command => command
+      .blockReply(() => twitterEventStore.latest.then(tweet => slackTweetFormatter.blockify(tweet)))
+    )
+    .command('latest', null, command => command
+      .param('username', 'Show the latest tweet from $username', param => param
+        .blockReply((message, actions, username) => twitterEventStore
+          .latestFor(username).then(tweet => {
+            if (tweet == null) {
+              actions.reply(`I have not seen anything from @${username}`)
+                .catch(reason => env.debug(`Could not reply: ${JSON.stringify(reason)}`));
+              return null;
+            }
+            return slackTweetFormatter.blockify(tweet);
+          })
+        )
+      )
+    )
     .help('help')
-    .otherwise(message => `I don't know what that means: ${message.text}`);
-// .start()
-// .then(() => env.debug(`Slack client online`));
+    .otherwise(message => `I don't know what that means: ${message.text}`)
+    .start()
+    .then(() => env.debug(`Slack client online`));
 // wtfnode.dump();
 })
 ;
