@@ -8,3 +8,10 @@ export function unindent(s: string): string {
   const start = matches[1];
   return trim(s.replace(new RegExp('(\\r?\\n)' + start, 'g'), '$1'));
 }
+
+export function indentHanging(s: string, spaces: number): string {
+  if (s == null) {
+    return '';
+  }
+  return s.replace(/\n/g, '\n' + ' '.repeat(spaces));
+}

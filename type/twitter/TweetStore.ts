@@ -8,6 +8,10 @@ export class TweetStore extends MysqlClient {
     super();
   }
 
+  static getInstance(): Promise<TweetStore> {
+    return Promise.resolve(new TweetStore());
+  }
+
   follows(active: boolean = true): Promise<TwitterUser[]> {
     return this.findObjects(TwitterUser, `
       SELECT f.id, f.username, f.ident_id
@@ -49,5 +53,3 @@ export class TweetStore extends MysqlClient {
     ]);
   }
 }
-
-export const tweetStore = new TweetStore();

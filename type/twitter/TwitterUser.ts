@@ -47,6 +47,10 @@ export class TwitterUser {
 }
 
 export class TwitterUserStore extends MysqlClient {
+
+  public static getInstance(): Promise<TwitterUserStore> {
+    return Promise.resolve(new TwitterUserStore());
+  }
   findOneByName(username: string): Promise<TwitterUser | null> {
     return this.findOne(TwitterUser, 'username', username);
   }
@@ -59,5 +63,3 @@ export class TwitterUserStore extends MysqlClient {
     `;
   }
 }
-
-export const twitterUserStore = new TwitterUserStore();

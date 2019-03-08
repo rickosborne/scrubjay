@@ -17,6 +17,10 @@ export class TwitterEventStore extends MysqlClient {
     `).promise.then((rows: DataRow[]) => rows == null || rows.length < 1 ? null : Tweet.fromObject(rows[0].data));
   }
 
+  static getInstance(): Promise<TwitterEventStore> {
+    return Promise.resolve(new TwitterEventStore());
+  }
+
   latestFor(username: string): Promise<Tweet> {
     return this.query(`
       SELECT data
@@ -41,5 +45,3 @@ export class TwitterEventStore extends MysqlClient {
     }
   }
 }
-
-export const twitterEventStore = new TwitterEventStore();

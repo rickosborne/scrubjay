@@ -1,9 +1,9 @@
 import {buildFromObject} from '../FromObject';
 import * as Twitter from 'twitter';
-import {config} from '../Config';
+import {TwitterConfig} from '../Config';
 import env from '../../lib/env';
-import {twitterEventStore} from './TwitterEventStore';
-import {tweetStore} from './TweetStore';
+import {TwitterEventStore} from './TwitterEventStore';
+import {TweetStore} from './TweetStore';
 import {Tweet} from './Tweet';
 import EventEmitter = NodeJS.EventEmitter;
 import {TwitterUser} from './TwitterUser';
@@ -12,8 +12,12 @@ type TweetCallback = (tweet: Tweet) => void;
 
 export class TwitterClient {
 
-  constructor() {
-    this.twitter = new Twitter(config.twitter.credentials);
+  constructor(
+    config: TwitterConfig,
+    private readonly twitterEventStore: TwitterEventStore,
+    private readonly tweetStore: TweetStore,
+  ) {
+    this.twitter = new Twitter(config.credentials);
   }
 
   private stream: EventEmitter;
@@ -26,6 +30,14 @@ export class TwitterClient {
   static fromObject(object: {}): TwitterClient {
     return buildFromObject(TwitterClient, object)
       .orThrow(() => new Error(`Invalid twitter config`));
+  }
+
+  static getInstance(
+    twitterConfig: TwitterConfig,
+    twitterEventStore: TwitterEventStore,
+    tweetStore: TweetStore,
+  ): Promise<TwitterClient> {
+    return Promise.resolve(new TwitterClient(twitterConfig, twitterEventStore, tweetStore));
   }
 
   public addUsers(...users: TwitterUser[]): this {
@@ -56,7 +68,7 @@ export class TwitterClient {
             wait = 0;
             if (this.userNames.indexOf(tweet.user.name) >= 0) {
               logEvent = true;
-              tweetStore.store(tweet);
+              this.tweetStore.store(tweet);
               for (const callback of this.tweetCallbacks) {
                 callback(tweet);
               }
@@ -67,7 +79,7 @@ export class TwitterClient {
           }
           if (logEvent) {
             env.debug(maybeTweet);
-            twitterEventStore.save(maybeTweet);
+            this.twitterEventStore.save(maybeTweet);
           }
         });
         stream.on('error', err => {
@@ -82,5 +94,3 @@ export class TwitterClient {
     this.tweetCallbacks.push(callback);
   }
 }
-
-export const twitterClient = new TwitterClient();

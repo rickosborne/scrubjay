@@ -1,7 +1,6 @@
 import {MysqlClient} from './MysqlClient';
 import {buildFromObject} from './FromObject';
 import {Tweet} from './twitter/Tweet';
-import {tweetStore} from './twitter/TweetStore';
 
 export class Identity {
   // noinspection JSUnusedGlobalSymbols
@@ -21,7 +20,7 @@ export class Identity {
   }
 
   recentTweets(count: number): Promise<Tweet[]> {
-    return tweetStore.recentForIdentity(this, count);
+    throw new Error(`Not implemented: recentTweets`);
   }
 }
 
@@ -43,5 +42,3 @@ export class IdentityStore extends MysqlClient {
     `;
   }
 }
-
-export const identityStore = new IdentityStore();

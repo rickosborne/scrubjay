@@ -1,6 +1,8 @@
 import * as process from 'process';
 import * as fs from 'fs';
 import {FromObject} from '../type/FromObject';
+import {getTimeHHMMSS} from './time';
+import {indentHanging} from './unindent';
 
 const debug = !!process.env['DEBUG'];
 
@@ -12,7 +14,8 @@ class Env {
     if (debug) {
       const message = typeof callback === 'function' ? callback() : callback;
       if (message != null) {
-        console.log(typeof message === 'string' ? message : JSON.stringify(message));
+        const msg = typeof message === 'string' ? message : JSON.stringify(message);
+        console.log(`${getTimeHHMMSS()} ${indentHanging(msg, 9)}`);
       }
       if (err instanceof Error) {
         console.error(err.message);
@@ -21,12 +24,8 @@ class Env {
     }
   }
 
-  public debugError(prefix: string): (error: Error) => void {
-    return (err) => {
-      if (err != null) {
-        this.debug(() => `${prefix}: ${JSON.stringify(err)}`);
-      }
-    };
+  public debugFailure(prefix: string | (() => string)): (reason: any) => void {
+    return (reason) => this.debug(() => `${typeof prefix === 'function' ? prefix() : prefix}: ${this.readable(reason)}`);
   }
 
   // noinspection JSMethodCanBeStatic
@@ -35,7 +34,7 @@ class Env {
     return type == null ? object : type.fromObject(object);
   }
 
-  param<T = string>(name: string, defaultValue: T = null, converter: (s: string) => T = (s) => <T>(<unknown> s), thisArg: {} = null): T {
+  param<T = string>(name: string, defaultValue: T = null, converter: (s: string) => T = (s) => <T>(<unknown>s), thisArg: {} = null): T {
     const value = process.env[name];
     if (value == null) {
       if (defaultValue == null) {
@@ -46,6 +45,19 @@ class Env {
     }
     this.debug(() => `${name}=${defaultValue}`);
     return converter.call(thisArg, value);
+  }
+
+  // noinspection JSMethodCanBeStatic
+  public readable(obj: any): string {
+    if (obj == null) {
+      return '<null>';
+    } else if (obj instanceof Error) {
+      return `${obj.name}: ${obj.message}`;
+    } else if (['string', 'number'].indexOf(typeof obj) >= 0) {
+      return '' + obj;
+    } else {
+      return JSON.stringify(obj, null, 2);
+    }
   }
 }
 

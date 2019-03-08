@@ -40,9 +40,9 @@ export class FeedWriter {
       }
       const basePath = path.join(config.outputPath, identity.slug);
       const atomPath = path.join(basePath, 'atom.xml');
-      fs.writeFile(atomPath, feed.atom1(), {encoding: 'utf8'}, env.debugError(`Failed to write ${atomPath}`));
+      fs.writeFile(atomPath, feed.atom1(), {encoding: 'utf8'}, env.debugFailure(() => `Failed to write ${atomPath}`));
       const rssPath = path.join(basePath, 'rss.xml');
-      fs.writeFile(rssPath, feed.rss2(), {encoding: 'utf8'}, env.debugError(`Failed to write ${rssPath}`));
+      fs.writeFile(rssPath, feed.rss2(), {encoding: 'utf8'}, env.debugFailure(() => `Failed to write ${rssPath}`));
     });
   }
 }

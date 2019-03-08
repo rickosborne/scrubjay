@@ -15,6 +15,7 @@ import {PostableMessage} from './SlackClient';
 import {study} from '../../lib/study';
 import * as fetch from 'node-fetch';
 import env from '../../lib/env';
+import {fixed, getTimeHHMM} from '../../lib/time';
 
 interface EntityExtractor<T extends Indexed> {
   access(entities: TweetEntities): T[];
@@ -134,21 +135,13 @@ export class SlackTweetFormatter {
     return unorderedChunks.sort((a, b) => a.left - b.left);
   }
 
+  // noinspection JSMethodCanBeStatic
   private formatDateTime(dt: Date): string {
     const weekday = WEEKDAYS[dt.getDay()];
     const month = MONTHS[dt.getMonth()];
-    const date = `${this.lpad(dt.getDate(), '0', 2)} ${month} ${dt.getFullYear()}`;
-    const time = `${this.lpad(dt.getHours(), '0', 2)}:${this.lpad(dt.getMinutes(), '0', 2)}`;
+    const date = `${fixed(dt.getDate())} ${month} ${dt.getFullYear()}`;
+    const time = getTimeHHMM(dt);
     return `${weekday}, ${date} at ${time}`;
-  }
-
-  // noinspection JSMethodCanBeStatic
-  public lpad(suffix: string | number, prefix: string, desiredLength: number) {
-    const suff = '' + suffix;
-    if (suff.length === desiredLength) {
-      return suff;
-    }
-    return prefix.repeat(desiredLength - suff.length) + suff;
   }
 
   private markdownFromTweet(tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions): string {
@@ -222,5 +215,3 @@ export class SlackTweetFormatter {
     return `<${this.twitterUrl(name)}|@${name}>`;
   }
 }
-
-export const slackTweetFormatter = new SlackTweetFormatter();

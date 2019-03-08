@@ -36,6 +36,10 @@ export class FeedStore extends MysqlClient {
     `);
   }
 
+  public static getInstance(): Promise<FeedStore> {
+    return Promise.resolve(new FeedStore());
+  }
+
   public createFeed(channel: Channel): Promise<FeedChannel | null> {
     return new Promise((resolve, reject) => {
       this
@@ -82,5 +86,3 @@ export class FeedStore extends MysqlClient {
     `, [user.name]);
   }
 }
-
-export const slackFeedStore = new FeedStore();
