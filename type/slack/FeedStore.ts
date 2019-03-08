@@ -12,8 +12,8 @@ export class FeedChannel {
       .orThrow(message => new Error(`Could not reify FeedChannel: ${message}`));
   }
 
-  public static linkFor(channel: Channel): string {
-    return `<#${channel.id}|#${channel.name}>`;
+  public static linkFor(channel: Channel | FeedChannel): string {
+    return `<#${channel.id}|${channel.name}>`;
   }
 
   constructor(

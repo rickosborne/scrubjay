@@ -51,11 +51,7 @@ migrator.onReady(() => {
           if (channels == null || channels.length === 0) {
             return `I am not in any channels at the moment.`;
           }
-          const links: string[] = ['I am available in:'];
-          for (const channel of channels) {
-            links.push(channel.link);
-          }
-          return links.join(' ');
+          return `I am available in: ${channels.map(c => FeedChannel.linkFor(c)).join(' ')}.`;
         });
       })
     )

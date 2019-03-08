@@ -6,10 +6,12 @@
   "dependencies": {
     "@slack/client": "^4.10.0",
     "@types/ejs": "^2.6.3",
+    "@types/node-fetch": "^2.1.6",
     "@types/twitter": "^1.7.0",
     "ejs": "^2.6.1",
     "feed": "^2.0.4",
     "mysql2": "^1.6.5",
+    "node-fetch": "^2.3.0",
     "twitter": "^1.7.1"
   },
   "devDependencies": {

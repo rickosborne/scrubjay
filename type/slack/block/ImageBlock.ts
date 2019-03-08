@@ -1,8 +1,8 @@
-import {SlackBlock} from './SlackBlock';
+import {KnownBlockable, SlackBlock} from './SlackBlock';
 import * as client from '@slack/client';
 import {PlainTextBlock} from './PlaintextBlock';
 
-export class ImageBlock extends SlackBlock {
+export class ImageBlock extends SlackBlock implements KnownBlockable {
   static readonly TYPE = 'image';
 
   constructor(

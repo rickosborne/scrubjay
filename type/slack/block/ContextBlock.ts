@@ -1,4 +1,4 @@
-import {SlackBlock} from './SlackBlock';
+import {KnownBlockable, SlackBlock} from './SlackBlock';
 import * as client from '@slack/client';
 import {SlackId} from '../RTEvent';
 import {buildAndCall} from '../SlackFormatBuilder';
@@ -7,7 +7,7 @@ import {PlainTextBlock} from './PlaintextBlock';
 import {MarkdownTextBlock} from './MarkdownTextBlock';
 import {ImageElement} from './ImageElement';
 
-export class ContextBlock extends SlackBlock {
+export class ContextBlock extends SlackBlock implements KnownBlockable {
   static readonly MAX_ELEMENTS = 10;
   static readonly TYPE = 'context';
 

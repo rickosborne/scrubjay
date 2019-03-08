@@ -1,9 +1,9 @@
-import {SlackBlock} from './SlackBlock';
+import {KnownBlockable, SlackBlock} from './SlackBlock';
 import {TextBlock} from './TextBlock';
 import * as client from '@slack/client';
 import {AccessoryElement} from './AccessoryElement';
 
-export class SectionBlock extends SlackBlock {
+export class SectionBlock extends SlackBlock implements KnownBlockable {
   static readonly TYPE = 'section';
 
   constructor(

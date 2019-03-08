@@ -1,9 +1,7 @@
 import * as client from '@slack/client';
-import {SlackBlock} from './block/SlackBlock';
+import {KnownBlockable} from './block/SlackBlock';
 import {ContextBlock} from './block/ContextBlock';
 import {TextBlock} from './block/TextBlock';
-import {PlainTextBlock} from './block/PlaintextBlock';
-import {MarkdownTextBlock} from './block/MarkdownTextBlock';
 import {SectionBlock} from './block/SectionBlock';
 import {ButtonElement} from './block/ButtonElement';
 import {StaticSelectBlock} from './block/StaticSelectBlock';
@@ -46,18 +44,11 @@ export interface ClientOptionGroup {
 }
 
 export class SlackFormatBuilder {
-  public readonly blocks: SlackBlock[] = [];
+  public readonly blocks: KnownBlockable[] = [];
 
+  // noinspection JSUnusedGlobalSymbols
   public context(callback: (context: ContextBlock) => void): this {
     return buildAndCall(new ContextBlock([]), this.blocks, callback);
-  }
-
-  public markdown(text: string, verbatim?: boolean): MarkdownTextBlock {
-    return buildAndCall(new MarkdownTextBlock(text, verbatim), this.blocks);
-  }
-
-  public plainText(text: string, emoji: boolean = false, callback?: (plainText: PlainTextBlock) => void): this {
-    return buildAndCall(new PlainTextBlock(text, emoji), this.blocks, callback);
   }
 
   public section(text: TextBlock, fields: TextBlock[] = [], accessory: AccessoryElement): this {

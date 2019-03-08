@@ -51,14 +51,18 @@ export class PostableMessage implements slack.ChatPostMessageArguments {
   with(channelId: SlackId, thread?: SlackTimestamp): PostableMessage {
     return new PostableMessage(channelId || this.channel, thread || this.thread_ts, this.text, this.blocks, this.attachments);
   }
+
+  withText(text: string) {
+    return new PostableMessage(this.channel, this.thread_ts, text || this.text, this.blocks, this.attachments);
+  }
 }
 
 type MaybePromise<T> = T | Promise<T>;
 type FromMessage<T> = (message: DirectMessage, actions: OnMessageActions, ...parts: string[]) => MaybePromise<T>;
 type OnSlackMessage = FromMessage<boolean | void>;
 type Eventually<T> = MaybePromise<T> | FromMessage<T>;
-type Postable = string | PostableMessage | PostableMessage[];
-type EventuallyPostable = Eventually<Postable>;
+export type Postable = string | PostableMessage | PostableMessage[];
+export type EventuallyPostable = Eventually<Postable>;
 
 function regexify(stringOrPattern: string | RegExp): RegExp {
   return stringOrPattern instanceof RegExp ? stringOrPattern : new RegExp(stringOrPattern, 'i');

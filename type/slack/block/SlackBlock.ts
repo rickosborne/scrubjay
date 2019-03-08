@@ -1,3 +1,5 @@
+import {KnownBlock} from '@slack/client';
+
 export abstract class SlackBlock {
   protected constructor(
     public readonly type: string,
@@ -6,4 +8,8 @@ export abstract class SlackBlock {
   }
 
   abstract get block(): object;
+}
+
+export interface KnownBlockable {
+  block: KnownBlock;
 }

@@ -8,10 +8,14 @@ import {TweetHashtag} from '../twitter/TweetHashtag';
 import {TweetMedia} from '../twitter/TweetMedia';
 import {TweetMention} from '../twitter/TweetMention';
 import {TweetSymbol} from '../twitter/TweetSymbol';
-import {SlackBlock} from './block/SlackBlock';
+import {KnownBlockable} from './block/SlackBlock';
 import * as slack from '@slack/client';
 import {TextBlock} from './block/TextBlock';
 import {PostableMessage} from './SlackClient';
+import {study} from '../../lib/study';
+
+const fetch = require('node-fetch');
+import env from '../../lib/env';
 
 interface EntityExtractor<T extends Indexed> {
   access(entities: TweetEntities): T[];
@@ -32,7 +36,7 @@ interface TweetRenderingFlags {
 }
 
 interface DelayedRenderActions {
-  addBlock(block: SlackBlock): void;
+  addBlock(block: KnownBlockable): void;
 
   addMessage(message: PostableMessage): void;
 }
@@ -47,7 +51,27 @@ const extractors: EntityExtractor<Indexed>[] = [
   },
   {
     access: ents => ents.urls,
-    convert: (url: TweetUrl) => `<${url.expanded}|${url.display}>`
+    convert: (url: TweetUrl) => {
+      study(url.expanded)
+        .ifMatch(/^https?:\/\/bit.ly\/(.+?)/, linkId => {
+          const body = JSON.stringify({bitlink_id: linkId});
+          fetch('https://api-ssl.bitly.com/v4/expand', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': body.length
+            },
+            body
+          })
+            .then(res => res.json())
+            .then(link => {
+              env.debug(() => `${JSON.stringify(link, null, 2)}`);
+              // later.send(`<${link}>`);
+            })
+          ;
+        });
+      return `<${url.expanded}|${url.display}>`;
+    }
   },
   {
     access: ents => ents.media,
@@ -143,17 +167,18 @@ export class SlackTweetFormatter {
   public messagesFromTweet(tweet: Tweet): PostableMessage[] {
     const messages: PostableMessage[] = [];
     const builder = new SlackFormatBuilder();
-    const lateBlocks: SlackBlock[] = [];
+    const lateBlocks: KnownBlockable[] = [];
     const later: DelayedRenderActions = {
       addMessage: (m: PostableMessage) => messages.push(m),
-      addBlock: (block: SlackBlock) => lateBlocks.push(block),
+      addBlock: (block: KnownBlockable) => lateBlocks.push(block),
     };
     this.blocksFromTweet(builder, tweet, {}, later);
     if (tweet.quoted != null) {
       this.blocksFromTweet(builder, tweet.quoted, {quoted: true}, later);
     }
     builder.blocks.push(...lateBlocks);
-    const message = PostableMessage.from(builder.blocks.map(b => <slack.KnownBlock>b.block));
+    const message = PostableMessage.from(builder.blocks.map(b => <slack.KnownBlock>b.block))
+      .withText(`@${tweet.user.name}:\n${tweet.text}`);
     messages.unshift(message);
     return messages;
   }
