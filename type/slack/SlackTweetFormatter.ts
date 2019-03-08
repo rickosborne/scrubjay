@@ -178,7 +178,7 @@ export class SlackTweetFormatter {
     }
     builder.blocks.push(...lateBlocks);
     const message = PostableMessage.from(builder.blocks.map(b => <slack.KnownBlock>b.block))
-      .withText(`@${tweet.user.name}:\n${tweet.text}`);
+      .withText(`@${tweet.user.name}:\n${this.slackEscape(tweet.text)}`);
     messages.unshift(message);
     return messages;
   }
