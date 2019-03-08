@@ -10,12 +10,13 @@ import {TweetMention} from '../twitter/TweetMention';
 import {TweetSymbol} from '../twitter/TweetSymbol';
 import {SlackBlock} from './block/SlackBlock';
 import * as slack from '@slack/client';
-import {TwitterUser} from '../twitter/TwitterUser';
+import {TextBlock} from './block/TextBlock';
+import {PostableMessage} from './SlackClient';
 
 interface EntityExtractor<T extends Indexed> {
   access(entities: TweetEntities): T[];
 
-  convert(item: T, addBlock: (block: SlackBlock) => void): string;
+  convert(item: T, later: DelayedRenderActions): string;
 }
 
 interface Chunk {
@@ -23,6 +24,21 @@ interface Chunk {
   left: number;
   right: number;
 }
+
+interface TweetRenderingFlags {
+  inReplyTo?: boolean;
+  quoted?: boolean;
+  retweeted?: boolean;
+}
+
+interface DelayedRenderActions {
+  addBlock(block: SlackBlock): void;
+
+  addMessage(message: PostableMessage): void;
+}
+
+export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const extractors: EntityExtractor<Indexed>[] = [
   {
@@ -35,8 +51,9 @@ const extractors: EntityExtractor<Indexed>[] = [
   },
   {
     access: ents => ents.media,
-    convert: (media: TweetMedia, addBlock) => {
-      addBlock(new ImageBlock(media.url, media.displayUrl));
+    convert: (media: TweetMedia, later: DelayedRenderActions) => {
+      later.addMessage(PostableMessage.from(`<${media.url}>`));
+      // later.addBlock(new ImageBlock(media.url, media.displayUrl));
       return `<${media.url}|${media.displayUrl}>`;
     }
   },
@@ -51,19 +68,32 @@ const extractors: EntityExtractor<Indexed>[] = [
 ];
 
 export class SlackTweetFormatter {
-  public blockify(tweet: Tweet): slack.KnownBlock[] {
-    const builder = new SlackFormatBuilder();
-    const lateBlocks: SlackBlock[] = [];
-    builder.section(
-      new MarkdownTextBlock(this.markdownFromTweet(tweet, block => lateBlocks.push(block))),
-      null,
-      tweet.user.profileImage == null ? null : new ImageBlock(tweet.user.profileImage, `@${tweet.user.name}`),
-    );
-    lateBlocks.forEach(block => builder.blocks.push(block));
-    return builder.blocks.map(b => <slack.KnownBlock>b.block);
+
+  // noinspection JSMethodCanBeStatic
+  private blockFromProfilePic(tweet: Tweet) {
+    return tweet == null || tweet.user == null || tweet.user.profileImage == null ? null
+      : new ImageBlock(tweet.user.profileImage, `@${tweet.user.name}`);
   }
 
-  private chunksForEntities(entities: TweetEntities, addBlock: (block: SlackBlock) => void): Chunk[] {
+  private blocksFromTweet(builder: SlackFormatBuilder, tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions) {
+    const fields: TextBlock[] = [];
+    const quote = flags.inReplyTo || flags.retweeted || flags.quoted ? '>' : '';
+    if (tweet.created != null) {
+      fields.push(new MarkdownTextBlock(`${quote}_Sent: ${this.formatDateTime(tweet.created)}_`));
+    }
+    if (tweet.replyUser != null) {
+      const originalLink = `<${this.twitterUrl(tweet.replyUser, tweet.replyTweetId)}|_In reply to ${tweet.replyUser}_>`;
+      fields.push(new MarkdownTextBlock(`${quote}${originalLink}`));
+    }
+    builder.section(
+      new MarkdownTextBlock(this.markdownFromTweet(tweet, flags, later)),
+      fields.length === 0 ? null : fields,
+      this.blockFromProfilePic(tweet),
+    );
+  }
+
+  // noinspection JSMethodCanBeStatic
+  private chunksForEntities(entities: TweetEntities, later: DelayedRenderActions): Chunk[] {
     const unorderedChunks: Chunk[] = [];
     if (entities != null) {
       for (const extractor of extractors) {
@@ -72,7 +102,7 @@ export class SlackTweetFormatter {
           continue;
         }
         for (const item of items) {
-          const converted = extractor.convert(item, addBlock);
+          const converted = extractor.convert(item, later);
           const [left, right] = item.indices;
           unorderedChunks.push({converted, left, right});
         }
@@ -81,28 +111,68 @@ export class SlackTweetFormatter {
     return unorderedChunks.sort((a, b) => a.left - b.left);
   }
 
-  private markdownFromTweet(tweet: Tweet, addBlock: (block: SlackBlock) => void): string {
-    const lines = [`*@${tweet.user.name}* (${tweet.user.fullName}):`];
-    const originalText: string = Tweet.unescapeText(tweet.longText);
+  private formatDateTime(dt: Date): string {
+    const weekday = WEEKDAYS[dt.getDay()];
+    const month = MONTHS[dt.getMonth()];
+    const date = `${this.lpad(dt.getDate(), '0', 2)} ${month} ${dt.getFullYear()}`;
+    const time = `${this.lpad(dt.getHours(), '0', 2)}:${this.lpad(dt.getMinutes(), '0', 2)}`;
+    return `${weekday}, ${date} at ${time}`;
+  }
+
+  // noinspection JSMethodCanBeStatic
+  public lpad(suffix: string | number, prefix: string, desiredLength: number) {
+    const suff = '' + suffix;
+    if (suff.length === desiredLength) {
+      return suff;
+    }
+    return prefix.repeat(desiredLength - suff.length) + suff;
+  }
+
+  private markdownFromTweet(tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions): string {
+    const attribution = `*${this.userLink(tweet.user.name)}* (${tweet.user.fullName}):`;
+    const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
+    const lines = [`${explanation}${attribution}`];
+    const originalText: string = tweet.longText;
     const entities: TweetEntities = tweet.extended == null || tweet.extended.entities == null ? tweet.entities : tweet.extended.entities;
-    const sparseChunks = this.chunksForEntities(entities, addBlock);
-    const result = this.replaceChunks(sparseChunks, originalText);
+    const sparseChunks = this.chunksForEntities(entities, later);
+    const result = this.replaceChunks(sparseChunks, originalText, flags);
     lines.push(result);
     return lines.join('\n');
   }
 
-  private replaceChunks(sparseChunks: Chunk[], originalText: string) {
+  public messagesFromTweet(tweet: Tweet): PostableMessage[] {
+    const messages: PostableMessage[] = [];
+    const builder = new SlackFormatBuilder();
+    const lateBlocks: SlackBlock[] = [];
+    const later: DelayedRenderActions = {
+      addMessage: (m: PostableMessage) => messages.push(m),
+      addBlock: (block: SlackBlock) => lateBlocks.push(block),
+    };
+    this.blocksFromTweet(builder, tweet, {}, later);
+    if (tweet.quoted != null) {
+      this.blocksFromTweet(builder, tweet.quoted, {quoted: true}, later);
+    }
+    builder.blocks.push(...lateBlocks);
+    const message = PostableMessage.from(builder.blocks.map(b => <slack.KnownBlock>b.block));
+    messages.unshift(message);
+    return messages;
+  }
+
+  private replaceChunks(sparseChunks: Chunk[], originalText: string, flags: TweetRenderingFlags) {
     let at = 0;
-    let result = '';
+    const quote = flags.quoted || flags.retweeted || flags.inReplyTo;
+    let result = quote ? '>' : '';
+    const process = quote ? s => this.slackEscape(Tweet.unescapeText(s)).replace(/\n/g, '\n>')
+      : s => this.slackEscape(Tweet.unescapeText(s));
     for (const chunk of sparseChunks) {
       if (chunk.left > at) {  // catch up
-        result += this.slackEscape(originalText.substring(at, chunk.left));
+        result += process(originalText.substring(at, chunk.left));
       }
       result += chunk.converted;
       at = chunk.right;
     }
     if (at < originalText.length) {
-      result += this.slackEscape(originalText.substr(at));
+      result += process(originalText.substr(at));
     }
     return result;
   }
@@ -117,8 +187,15 @@ export class SlackTweetFormatter {
       ;
   }
 
+  // noinspection JSMethodCanBeStatic
+  public twitterUrl(username: string, statusId?: string): string {
+    const base = `https://twitter.com/${username}`;
+    return statusId == null ? base : `${base}/status/${statusId}`;
+  }
+
+  // noinspection JSMethodCanBeStatic
   public userLink(name: string): string {
-    return `<https://twitter.com/${name}|@${name}>`;
+    return `<${this.twitterUrl(name)}|@${name}>`;
   }
 }
 

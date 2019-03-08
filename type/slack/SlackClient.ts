@@ -8,27 +8,65 @@ import {SlackId, SlackTimestamp} from './RTEvent';
 import {trim} from '../../lib/trim';
 import {Channel} from './Channel';
 import {WebChannelsListResult} from './WebChannelsListResult';
+import {MessageAttachment} from '@slack/client';
 
 interface OnMessageActions {
   channel(name: string): Promise<Channel>;
 
-  reply(text: string | slack.KnownBlock[], thread?: boolean): Promise<void>;
+  commandsLike(text: string): { path: string; helpText: string }[];
+
+  reply(...messages: PostableMessage[]): Promise<void>;
 
   typing(): this;
 }
 
-type OnSlackMessage = (message: DirectMessage, actions: OnMessageActions, ...parts: string[]) => boolean | void;
-type StringFromMessage = (message: DirectMessage, actions: OnMessageActions, ...parts: string[]) => string | Promise<string>;
-type BlocksFromMessage = (message: DirectMessage, actions: OnMessageActions, ...parts: string[])
-  => slack.KnownBlock[] | Promise<slack.KnownBlock[]>;
-type EventuallyString = string | StringFromMessage | Promise<string>;
-type EventuallyBlocks = slack.KnownBlock[] | Promise<slack.KnownBlock[]> | BlocksFromMessage;
+export class PostableMessage implements slack.ChatPostMessageArguments {
+  static from(object: string | slack.KnownBlock[] | PostableMessage, channel?: SlackId, thread?: SlackTimestamp): PostableMessage | null {
+    if (object instanceof PostableMessage) {
+      return object;
+    }
+    if (typeof object === 'string') {
+      return new PostableMessage(channel, thread, object);
+    }
+    if (Array.isArray(object)) {
+      return new PostableMessage(channel, thread, undefined, object);
+    }
+    return null;
+  }
+
+  // noinspection JSUnusedGlobalSymbols
+  constructor(
+    public readonly channel: SlackId,
+    public readonly thread_ts: SlackTimestamp,
+    public readonly text: string,
+    public readonly blocks?: slack.KnownBlock[],
+    public readonly attachments?: MessageAttachment[],
+  ) {
+  }
+
+  toString(): string {
+    return JSON.stringify(this, null, 2);
+  }
+
+  with(channelId: SlackId, thread?: SlackTimestamp): PostableMessage {
+    return new PostableMessage(channelId || this.channel, thread || this.thread_ts, this.text, this.blocks, this.attachments);
+  }
+}
+
+type MaybePromise<T> = T | Promise<T>;
+type FromMessage<T> = (message: DirectMessage, actions: OnMessageActions, ...parts: string[]) => MaybePromise<T>;
+type OnSlackMessage = FromMessage<boolean | void>;
+type Eventually<T> = MaybePromise<T> | FromMessage<T>;
+type Postable = string | PostableMessage | PostableMessage[];
+type EventuallyPostable = Eventually<Postable>;
 
 function regexify(stringOrPattern: string | RegExp): RegExp {
   return stringOrPattern instanceof RegExp ? stringOrPattern : new RegExp(stringOrPattern, 'i');
 }
 
 export class Command {
+
+  static readonly SPLAT = /(?:(\S+)\s*)*/g;
   public readonly children: Command[] = [];
 
   constructor(
@@ -50,12 +88,10 @@ export class Command {
   }
 
   get path(): string {
-    return (this.parent == null ? '' : (this.parent.path + ' ')) + (this.literal || ('$' + this.paramName));
-  }
-
-  public blockReply(eventuallyBlocks: EventuallyBlocks, thread: boolean = false): this {
-    this.client.replyBlocks(this.matcher, eventuallyBlocks, thread);
-    return this;
+    return (this.parent == null ? '' : (this.parent.path + ' '))
+      + (this.literal
+        || (this.paramName == null ? null : '$' + this.paramName)
+        || (this.pattern === Command.SPLAT ? '...' : this.pattern.source));
   }
 
   public param(name: string, helpText: string = null, callback: (subcommand: Command) => void): this {
@@ -65,8 +101,15 @@ export class Command {
     return this;
   }
 
-  public reply(eventuallyString: EventuallyString, thread: boolean = false): this {
-    this.client.replyTo(this.matcher, eventuallyString, thread);
+  public reply(eventually: EventuallyPostable, thread: boolean = false): this {
+    this.client.replyTo(this.matcher, eventually, thread);
+    return this;
+  }
+
+  public rest(helpText: string = null, callback: (subcommand: Command) => void): this {
+    const command = new Command(this.client, null, null, Command.SPLAT, helpText, this);
+    this.children.push(command);
+    callback(command);
     return this;
   }
 
@@ -89,37 +132,6 @@ export class SlackClient {
   constructor(cfg: SlackConfig) {
     this.oauth = cfg.botOAuth;
     this.web = new WebClient(this.oauth);
-  }
-
-  private blockReplier(messageSupplier: EventuallyBlocks, thread: boolean = false): OnSlackMessage {
-    return (message, actions, ...args) => {
-      this.blockify(messageSupplier, message, ...args).then(blocks => {
-        if (blocks != null) {
-          actions.reply(blocks, thread)
-            .catch(reason => env.debug(() => `Could not deliver reply: ${reason}`));
-        }
-      });
-    };
-  }
-
-  private blockify(s: EventuallyBlocks, message: DirectMessage, ...args): Promise<slack.KnownBlock[] | null> {
-    let result = s;
-    do {
-      const previous = result;
-      if (Array.isArray(result)) {
-        return Promise.resolve(result);
-      }
-      if (result instanceof Promise) {
-        return result;
-      }
-      if (typeof result === 'function') {
-        result = result(message, this.messageActions(message), ...args);
-      }
-      if (previous === result) {
-        env.debug(() => `Never resolved: ${JSON.stringify(result)}`);
-        return Promise.resolve(null);
-      }
-    } while (true);
   }
 
   public command(key: string | RegExp, helpText: string = null, callback?: (command: Command) => void): this {
@@ -147,8 +159,22 @@ export class SlackClient {
   private messageActions(message: DirectMessage): OnMessageActions {
     const self = this;
     return {
-      reply: (text, thread) => {
-        return this.send(text, message.channel, thread ? message.ts : null);
+      commandsLike: text => {
+        const words = text.split(/\s+/g);
+        const results = [];
+        for (const command of self.commands) {
+          const path = command.path;
+          const helpText = command.helpText;
+          for (const word of words) {
+            if (helpText != null && path.indexOf(word) >= 0 && results.indexOf(path) < 0) {
+              results.push({path, helpText});
+            }
+          }
+        }
+        return results;
+      },
+      reply: (...replies: PostableMessage[]) => {
+        return this.send(...replies);
       },
       channel(name: string): Promise<Channel> {
         const simpleName = name.replace(/^#/, '').toLowerCase();
@@ -170,7 +196,8 @@ export class SlackClient {
   }
 
   private messageHandler(message: DirectMessage): void {
-    if ((message.subtype && message.subtype === 'bot_message') || (!message.subtype && message.user === this.rtm.activeUserId)) {
+    const subtype: string = message.subtype || '';
+    if (['bot_message', 'message_changed'].indexOf(subtype) >= 0 || (!message.subtype && message.user === this.rtm.activeUserId)) {
       return;
     }
     env.debug(() => message);
@@ -199,53 +226,54 @@ export class SlackClient {
     return this;
   }
 
-  public otherwise(messageSupplier: EventuallyString): this {
-    this.onMessage(this.simpleReplier(messageSupplier));
+  public otherwise(messageSupplier: EventuallyPostable): this {
+    this.onMessage(this.replier(messageSupplier));
     return this;
   }
 
-  public replyBlocks(regex: RegExp, messageSupplier: EventuallyBlocks, thread: boolean = false): this {
-    this.onMessageMatch(regex, this.blockReplier(messageSupplier, thread));
-    return this;
-  }
-
-  public replyTo(regex: RegExp, messageSupplier: EventuallyString, thread: boolean = false): this {
-    this.onMessageMatch(regex, this.simpleReplier(messageSupplier, thread));
-    return this;
-  }
-
-  public send(text: string | slack.KnownBlock[], to: SlackId, threadTimestamp?: SlackTimestamp): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // const escaped = text
-      //   .replace(/&/g, '&amp;')
-      //   .replace(/</g, '&lt;')
-      //   .replace(/>/g, '&gt;')
-      // ;
-      const message = {
-        blocks: Array.isArray(text) ? text : undefined,
-        text: typeof text === 'string' ? text : undefined,
-        channel: to,
-        thread_ts: threadTimestamp == null ? null : threadTimestamp
-      };
-      this.web.chat.postMessage(message).then(result => {
-        if (result.ok) {
-          resolve();
-        } else {
-          reject(result.error);
-        }
-      });
-    });
-  }
-
-  private simpleReplier(messageSupplier: EventuallyString, thread: boolean = false): OnSlackMessage {
+  private replier(messageSupplier: EventuallyPostable, thread: boolean = false): OnSlackMessage {
     return (message, actions, ...args) => {
-      this.stringify(messageSupplier, message, ...args).then(text => {
+      this.resolve(messageSupplier, message, ...args).then(text => {
         if (text != null) {
-          actions.reply(text, thread)
+          actions.reply(...this.toPostables(text, message.channel, thread ? message.ts : undefined))
             .catch(reason => env.debug(() => `Could not deliver reply: ${reason}`));
         }
       });
     };
+  }
+
+  public replyTo(regex: RegExp, messageSupplier: EventuallyPostable, thread: boolean = false): this {
+    this.onMessageMatch(regex, this.replier(messageSupplier, thread));
+    return this;
+  }
+
+  private resolve<T>(s: Eventually<T>, message: DirectMessage, ...args: string[]): Promise<T | null> {
+    let result: Eventually<T> = s;
+    do {
+      if (result instanceof Promise) {
+        return result;
+      }
+      if (typeof result === 'function') {
+        result = (<FromMessage<T>>result)(message, this.messageActions(message), ...args);
+        continue;
+      }
+      return Promise.resolve(<T>result);
+    } while (true);
+  }
+
+  public send(...messages: PostableMessage[]): Promise<void> {
+    return Promise
+      .all(messages.map((message, index) => new Promise(resolve => {
+          env.debug(() => message.toString());
+          setTimeout(() => this.web.chat.postMessage(message).then(r => resolve(r)), index * 250);
+        })
+      ))
+      .then(() => null)
+      .catch(err => {
+        const jsonError = JSON.stringify(err, null, 2);
+        const jsonText = JSON.stringify(messages, null, 2);
+        env.debug(() => `Could not send: ${jsonError}\n${jsonText}`, err instanceof Error ? err : null);
+      });
   }
 
   public start(): Promise<void> {
@@ -267,24 +295,17 @@ export class SlackClient {
     });
   }
 
-  private stringify(s: EventuallyString, message: DirectMessage, ...args): Promise<string | null> {
-    let result = s;
-    do {
-      const previous = result;
-      if (typeof result === 'string') {
-        return Promise.resolve(result);
-      }
-      if (result instanceof Promise) {
-        return result;
-      }
-      if (typeof result === 'function') {
-        result = result(message, this.messageActions(message), ...args);
-      }
-      if (previous === result) {
-        env.debug(() => `Never resolved: ${JSON.stringify(result)}`);
-        return Promise.resolve(null);
-      }
-    } while (true);
+  private toPostables(eventually: Postable, channel?: SlackId, ts?: SlackTimestamp): PostableMessage[] {
+    if (eventually instanceof PostableMessage) {
+      return [eventually.with(channel, ts)];
+    }
+    if (typeof eventually === 'string') {
+      return [PostableMessage.from(eventually, channel, ts)];
+    }
+    if (Array.isArray(eventually)) {
+      return eventually.map(e => e.with(channel, ts));
+    }
+    return [];
   }
 }
 

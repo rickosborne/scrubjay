@@ -13,7 +13,7 @@ export class FeedChannel {
   }
 
   public static linkFor(channel: Channel): string {
-    return `<#${channel.id}|${channel.name}>`;
+    return `<#${channel.id}|#${channel.name}>`;
   }
 
   constructor(
@@ -64,7 +64,7 @@ export class FeedStore extends MysqlClient {
     });
   }
 
-  public followsFor(channel: FeedChannel): Promise<TwitterUser[]> {
+  public followsFor(channel: FeedChannel | Channel): Promise<TwitterUser[]> {
     return this.findObjects(TwitterUser, `
       SELECT f.id, f.username, f.location, f.url, f.description, f.active
       FROM slack_feed_twitter AS sft
