@@ -30,10 +30,13 @@
   "name": "scrubjay",
   "private": true,
   "scripts": {
-    "build": "webpack-cli",
-    "compile": "tslint -c tslint.json -p tsconfig.json --fix && tsc",
-    "prebuild": "tslint -c tslint.json -p tsconfig.json --fix",
-    "prestart": "npm run build",
+    "clean": "rm -Rf dist",
+    "compile": "tsc",
+    "lint": "tslint -c tslint.json -p tsconfig.json --fix",
+    "package": "webpack-cli",
+    "precompile": "npm run clean && npm run lint",
+    "prepackage": "npm run clean && npm run lint",
+    "prestart": "npm run package",
     "start": "node $NODE_DEBUG_OPTION dist/scrubjay.js"
   },
   "version": "0.1.0"
