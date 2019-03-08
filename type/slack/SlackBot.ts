@@ -1,4 +1,4 @@
-import {CommandSummary, EventuallyPostable, PostableMessage, SlackClient} from './SlackClient';
+import {CommandSummary, EventuallyPostable, SlackClient} from './SlackClient';
 import {FeedChannel, FeedStore} from './FeedStore';
 import env from '../../lib/env';
 import {SlackTweetFormatter} from './SlackTweetFormatter';
@@ -6,6 +6,7 @@ import {TwitterUserStore} from '../twitter/TwitterUser';
 import {TweetStore} from '../twitter/TweetStore';
 import {TwitterEventStore} from '../twitter/TwitterEventStore';
 import {Tweet} from '../twitter/Tweet';
+import {PostableMessage} from './PostableMessage';
 
 function regexify(stringOrPattern: string | RegExp): RegExp {
   return stringOrPattern instanceof RegExp ? stringOrPattern : new RegExp(stringOrPattern, 'i');

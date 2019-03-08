@@ -1,4 +1,3 @@
-import * as slack from '@slack/client';
 import {RTMClient, WebClient} from '@slack/client';
 import {SlackConfig} from '../Config';
 import env from '../../lib/env';
@@ -8,7 +7,14 @@ import {SlackId, SlackTimestamp} from './RTEvent';
 import {trim} from '../../lib/trim';
 import {Channel} from './Channel';
 import {WebChannelsListResult} from './WebChannelsListResult';
-import {MessageAttachment} from '@slack/client';
+import {PostableMessage} from './PostableMessage';
+
+export type MaybePromise<T> = T | Promise<T>;
+export type FromMessage<T> = (message: DirectMessage, actions: OnMessageActions, ...parts: string[]) => MaybePromise<T>;
+export type OnSlackMessage = FromMessage<boolean | void>;
+export type Eventually<T> = MaybePromise<T> | FromMessage<T>;
+export type Postable = string | PostableMessage | PostableMessage[];
+export type EventuallyPostable = Eventually<Postable>;
 
 export interface CommandSummary {
   helpText: string;
@@ -20,50 +26,6 @@ interface OnMessageActions {
 
   reply(...messages: PostableMessage[]): Promise<void>;
 }
-
-export class PostableMessage implements slack.ChatPostMessageArguments {
-  static from(object: string | slack.KnownBlock[] | PostableMessage, channel?: SlackId, thread?: SlackTimestamp): PostableMessage | null {
-    if (object instanceof PostableMessage) {
-      return object;
-    }
-    if (typeof object === 'string') {
-      return new PostableMessage(channel, thread, object);
-    }
-    if (Array.isArray(object)) {
-      return new PostableMessage(channel, thread, undefined, object);
-    }
-    return null;
-  }
-
-  // noinspection JSUnusedGlobalSymbols
-  constructor(
-    public readonly channel: SlackId,
-    public readonly thread_ts: SlackTimestamp,
-    public readonly text: string,
-    public readonly blocks?: slack.KnownBlock[],
-    public readonly attachments?: MessageAttachment[],
-  ) {
-  }
-
-  toString(): string {
-    return JSON.stringify(this, null, 2);
-  }
-
-  with(channelId: SlackId, thread?: SlackTimestamp): PostableMessage {
-    return new PostableMessage(channelId || this.channel, thread || this.thread_ts, this.text, this.blocks, this.attachments);
-  }
-
-  withText(text: string) {
-    return new PostableMessage(this.channel, this.thread_ts, text || this.text, this.blocks, this.attachments);
-  }
-}
-
-export type MaybePromise<T> = T | Promise<T>;
-export type FromMessage<T> = (message: DirectMessage, actions: OnMessageActions, ...parts: string[]) => MaybePromise<T>;
-export type OnSlackMessage = FromMessage<boolean | void>;
-export type Eventually<T> = MaybePromise<T> | FromMessage<T>;
-export type Postable = string | PostableMessage | PostableMessage[];
-export type EventuallyPostable = Eventually<Postable>;
 
 export class SlackClient {
 

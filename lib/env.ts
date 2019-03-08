@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import {FromObject} from '../type/FromObject';
 import {getTimeHHMMSS} from './time';
 import {indentHanging} from './unindent';
+import {obtain, Obtainable} from '../type/Obtainable';
 
 const debug = !!process.env['DEBUG'];
 
@@ -24,8 +25,8 @@ class Env {
     }
   }
 
-  public debugFailure(prefix: string | (() => string)): (reason: any) => void {
-    return (reason) => this.debug(() => `${typeof prefix === 'function' ? prefix() : prefix}: ${this.readable(reason)}`);
+  public debugFailure(prefix: Obtainable<string>): (reason: any) => void {
+    return (reason) => this.debug(() => `${obtain(prefix)}: ${this.readable(reason)}`);
   }
 
   // noinspection JSMethodCanBeStatic

@@ -11,7 +11,7 @@ import {TweetSymbol} from '../twitter/TweetSymbol';
 import {KnownBlockable} from './block/SlackBlock';
 import * as slack from '@slack/client';
 import {TextBlock} from './block/TextBlock';
-import {PostableMessage} from './SlackClient';
+import {PostableMessage} from './PostableMessage';
 import {study} from '../../lib/study';
 import * as fetch from 'node-fetch';
 import env from '../../lib/env';
