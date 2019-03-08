@@ -1,6 +1,6 @@
 import {KnownBlockable, SlackBlock} from './SlackBlock';
 import * as client from '@slack/client';
-import {PlainTextBlock} from './PlaintextBlock';
+import {PlainTextBlock} from './PlainTextBlock';
 
 export class ImageBlock extends SlackBlock implements KnownBlockable {
   static readonly TYPE = 'image';

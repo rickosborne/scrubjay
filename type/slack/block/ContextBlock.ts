@@ -3,7 +3,7 @@ import * as client from '@slack/client';
 import {SlackId} from '../RTEvent';
 import {buildAndCall} from '../SlackFormatBuilder';
 import {UserBlock} from './UserBlock';
-import {PlainTextBlock} from './PlaintextBlock';
+import {PlainTextBlock} from './PlainTextBlock';
 import {MarkdownTextBlock} from './MarkdownTextBlock';
 import {ImageElement} from './ImageElement';
 
