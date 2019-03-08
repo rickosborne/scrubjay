@@ -31,7 +31,7 @@ export class TwitterEventStore extends MysqlClient {
     });
   }
 
-  save(event: {} = null) {
+  save(event: {[key: string]: {[key: string]: string}} = null) {
     const username = event != null && event['user'] != null ? event['user']['screen_name'] : null;
     if (event != null) {
       this.query(`

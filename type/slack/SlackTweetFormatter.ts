@@ -13,8 +13,7 @@ import * as slack from '@slack/client';
 import {TextBlock} from './block/TextBlock';
 import {PostableMessage} from './SlackClient';
 import {study} from '../../lib/study';
-
-const fetch = require('node-fetch');
+import * as fetch from 'node-fetch';
 import env from '../../lib/env';
 
 interface EntityExtractor<T extends Indexed> {
@@ -55,11 +54,11 @@ const extractors: EntityExtractor<Indexed>[] = [
       study(url.expanded)
         .ifMatch(/^https?:\/\/bit.ly\/(.+?)/, linkId => {
           const body = JSON.stringify({bitlink_id: linkId});
-          fetch('https://api-ssl.bitly.com/v4/expand', {
+          fetch.default('https://api-ssl.bitly.com/v4/expand', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Content-Length': body.length
+              'Content-Length': '' + body.length
             },
             body
           })
@@ -187,8 +186,8 @@ export class SlackTweetFormatter {
     let at = 0;
     const quote = flags.quoted || flags.retweeted || flags.inReplyTo;
     let result = quote ? '>' : '';
-    const process = quote ? s => this.slackEscape(Tweet.unescapeText(s)).replace(/\n/g, '\n>')
-      : s => this.slackEscape(Tweet.unescapeText(s));
+    const process = quote ? (s: string) => this.slackEscape(Tweet.unescapeText(s)).replace(/\n/g, '\n>')
+      : (s: string) => this.slackEscape(Tweet.unescapeText(s));
     for (const chunk of sparseChunks) {
       if (chunk.left > at) {  // catch up
         result += process(originalText.substring(at, chunk.left));

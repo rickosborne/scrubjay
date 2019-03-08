@@ -35,7 +35,7 @@ class Env {
     return type == null ? object : type.fromObject(object);
   }
 
-  param<T = string>(name: string, defaultValue: T = null, converter: (string) => T = (v) => v, thisArg: {} = null): T {
+  param<T = string>(name: string, defaultValue: T = null, converter: (s: string) => T = (s) => <T>(<unknown> s), thisArg: {} = null): T {
     const value = process.env[name];
     if (value == null) {
       if (defaultValue == null) {

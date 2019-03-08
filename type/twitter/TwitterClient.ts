@@ -1,4 +1,3 @@
-import {Jsonable} from '../ToJson';
 import {buildFromObject} from '../FromObject';
 import * as Twitter from 'twitter';
 import {config} from '../Config';
@@ -11,10 +10,9 @@ import {TwitterUser} from './TwitterUser';
 
 type TweetCallback = (tweet: Tweet) => void;
 
-export class TwitterClient extends Jsonable {
+export class TwitterClient {
 
   constructor() {
-    super();
     this.twitter = new Twitter(config.twitter.credentials);
   }
 
@@ -38,7 +36,8 @@ export class TwitterClient extends Jsonable {
   }
 
   public connect(backoff?: number) {
-    if (this.stream != null && this.stream['destroy']) {
+    // @ts-ignore
+    if (this.stream != null && (typeof this.stream['destroy'] === 'function')) {
       // @ts-ignore
       this.stream.destroy();
     }

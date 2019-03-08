@@ -169,10 +169,10 @@ export class SlackClient {
         const words = text.split(/\s+/g);
         const results = [];
         for (const command of self.commands) {
-          const path = command.path;
-          const helpText = command.helpText;
+          const path: string = command.path;
+          const helpText: string = command.helpText;
           for (const word of words) {
-            if (helpText != null && path.indexOf(word) >= 0 && results.indexOf(path) < 0) {
+            if (helpText != null && path.indexOf(word) >= 0 && results.filter(r => r.path === path).length === 0) {
               results.push({path, helpText});
             }
           }

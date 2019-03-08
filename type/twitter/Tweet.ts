@@ -3,7 +3,7 @@ import {ExtendedTweet} from './ExtendedTweet';
 import {buildFromObject} from '../FromObject';
 import {TweetEntities} from './TweetEntities';
 
-const entityMap = {
+const entityMap: {[key: string]: string} = {
   '&': '&amp;',
   '<': '&lt;',
   '>': '&gt;',
@@ -14,7 +14,7 @@ const entityMap = {
   '=': '&#x3D;'
 };
 
-function escapeHtml(string) {
+function escapeHtml(string: string) {
   return String(string).replace(/[&<>"'`=\/]/g, s => entityMap[s]);
 }
 

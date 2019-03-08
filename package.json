@@ -15,18 +15,26 @@
     "twitter": "^1.7.1"
   },
   "devDependencies": {
+    "@types/mysql2": "github:types/mysql2",
     "@types/node": "^11.10.0",
+    "bufferutil": "^4.0.1",
+    "cardinal": "^2.1.1",
+    "ts-loader": "^5.3.3",
     "tslint": "^5.13.1",
     "typescript": "^3.3.3333",
+    "utf-8-validate": "^5.0.2",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.2.3",
     "wtfnode": "^0.8.0"
   },
   "name": "scrubjay",
   "private": true,
   "scripts": {
-    "build": "tsc",
+    "build": "webpack-cli",
+    "compile": "tslint -c tslint.json -p tsconfig.json --fix && tsc",
     "prebuild": "tslint -c tslint.json -p tsconfig.json --fix",
     "prestart": "npm run build",
-    "start": "node $NODE_DEBUG_OPTION dist/out-tsc/scrubjay.js"
+    "start": "node $NODE_DEBUG_OPTION dist/scrubjay.js"
   },
   "version": "0.1.0"
 }

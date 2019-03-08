@@ -3,7 +3,7 @@ declare type Runnable = () => void;
 
 interface Studied {
   ifMatch(regex: RegExp, callback: IfMatch): Studied;
-  otherwise(callback: () => void);
+  otherwise(callback: () => void): void;
 }
 
 class Done implements Studied {

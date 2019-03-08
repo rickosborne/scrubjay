@@ -43,7 +43,7 @@ export class QueryImpl {
   }
 
   execute(): void {
-    this.client.db.query(this.sql, this.params, (err: Error, rows: object[]) => {
+    this.client.db.query(this.sql, this.params, (err: Error, rows: []) => {
       if (err) {
         env.debug(() => `SQL error: ${JSON.stringify(err)} ${this.sql}`);
         this.err = err;
@@ -101,21 +101,21 @@ export class QueryImpl {
 
 export abstract class MysqlClient {
 
-  static _db;
+  static _db: mysql2.Connection;
 
   // noinspection JSMethodCanBeStatic
   public get db() {
     if (MysqlClient._db == null) {
       env.debug(() => `Mysql setup`);
       MysqlClient._db = mysql2.createConnection({
-        waitForConnections: true,
+        // waitForConnections: true,
         host: config.mysql.host,
         port: config.mysql.port,
         user: config.mysql.username,
         password: config.mysql.password,
         database: config.mysql.schema,
-        connectionLimit: 4,
-        queueLimit: 0
+        // connectionLimit: 4,
+        // queueLimit: 0
       });
     }
     return MysqlClient._db;
@@ -131,10 +131,7 @@ export abstract class MysqlClient {
       this.query(sql, params)
         .onError(err => reject(err))
         .onResults(rows => {
-          resolve((rows || []).map(row => {
-            const obj = type.fromObject(row);
-            return obj;
-          }));
+          resolve((rows || []).map(row => type.fromObject(row)));
         });
     });
   }

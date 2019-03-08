@@ -9,8 +9,9 @@
       "es2016",
       "dom"
     ],
-    "module": "commonjs",
+    "module": "es6",
     "moduleResolution": "node",
+    "noImplicitAny": true,
     "outDir": "./dist/out-tsc",
     "sourceMap": true,
     "target": "es6",

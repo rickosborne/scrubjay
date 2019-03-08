@@ -110,9 +110,10 @@ export class Maybe<T> implements Builder<T> {
 
   private extract(name: string | string[], typeName: string, required: boolean, tester: (o: {}) => boolean, converter?: (o: {}) => {}) {
     const names: string[] = Array.isArray(name) ? name : [name];
-    let value;
-    let _name;
+    let value: any;
+    let _name: any;
     for (_name of names) {
+      // @ts-ignore
       value = this.object[_name];
       if (value != null) {
         break;

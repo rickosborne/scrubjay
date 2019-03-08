@@ -1,9 +1,8 @@
 import {buildFromObject} from './FromObject';
-import {Jsonable} from './ToJson';
 import * as Twitter from 'twitter';
 import env from '../lib/env';
 
-export class MysqlConfig extends Jsonable {
+export class MysqlConfig {
   // noinspection JSUnusedGlobalSymbols
   static fromObject(object: {}): MysqlConfig {
     return buildFromObject(MysqlConfig, object)
@@ -22,11 +21,10 @@ export class MysqlConfig extends Jsonable {
     public readonly host: string = '127.0.0.1',
     public readonly port: number = 3306,
   ) {
-    super();
   }
 }
 
-export class TwitterConfig extends Jsonable {
+export class TwitterConfig {
   // noinspection JSUnusedGlobalSymbols
   static fromObject(object: {}): TwitterConfig {
     return buildFromObject(TwitterConfig, object)
@@ -43,7 +41,6 @@ export class TwitterConfig extends Jsonable {
     public readonly consumerKey: string,
     public readonly consumerSecret: string,
   ) {
-    super();
   }
 
   get credentials(): Twitter.AccessTokenOptions | Twitter.BearerTokenOptions {
@@ -53,10 +50,6 @@ export class TwitterConfig extends Jsonable {
       consumer_key: this.consumerKey,
       consumer_secret: this.consumerSecret
     };
-  }
-
-  toObject(keys: string[] = []): object {
-    return super.toObject(keys);
   }
 }
 
@@ -85,7 +78,7 @@ export class SlackConfig {
   }
 }
 
-export class Config extends Jsonable {
+export class Config {
   // noinspection JSUnusedGlobalSymbols
   static fromObject(object: {}): Config {
     return buildFromObject(Config, object)
@@ -104,11 +97,6 @@ export class Config extends Jsonable {
     public readonly mysql: MysqlConfig,
     public readonly slack: SlackConfig,
   ) {
-    super();
-  }
-
-  toObject(): object {
-    return super.toObject(['outputPath', 'baseUrl', 'subscriptions', 'twitter', 'mysql']);
   }
 }
 
