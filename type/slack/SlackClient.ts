@@ -10,6 +10,8 @@ import {Channel} from './Channel';
 import {WebChannelsListResult} from './WebChannelsListResult';
 import {MessageAttachment} from '@slack/client';
 
+const MESSAGE_DELAY = 500;
+
 interface OnMessageActions {
   channel(name: string): Promise<Channel>;
 
@@ -269,7 +271,7 @@ export class SlackClient {
     return Promise
       .all(messages.map((message, index) => new Promise(resolve => {
           env.debug(() => message.toString());
-          setTimeout(() => this.web.chat.postMessage(message).then(r => resolve(r)), index * 250);
+          setTimeout(() => this.web.chat.postMessage(message).then(r => resolve(r)), index * MESSAGE_DELAY);
         })
       ))
       .then(() => null)
