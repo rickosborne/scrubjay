@@ -43,7 +43,7 @@ export class FeedStore extends MysqlClient {
   public createFeed(channel: Channel): Promise<FeedChannel | null> {
     return new Promise((resolve, reject) => {
       this
-        .query(`
+        .query<void>(`
           INSERT IGNORE INTO slack_feed (channel_id, channel_name)
           VALUES (?, ?)
         `, [channel.id, channel.name])
@@ -57,7 +57,7 @@ export class FeedStore extends MysqlClient {
   public follow(channel: Channel, user: TwitterUser): Promise<boolean> {
     return new Promise((resolve, reject) => {
       this
-        .query(`
+        .query<void>(`
           INSERT IGNORE INTO slack_feed_twitter (slack_channel_id, twitter_username)
           VALUES (?, ?)
         `, [channel.id, user.name])

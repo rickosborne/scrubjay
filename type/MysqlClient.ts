@@ -4,34 +4,39 @@ import env from '../lib/env';
 import {FromObject} from './FromObject';
 import {unindent} from '../lib/unindent';
 
-type ResultSetCallback = (rows: object[]) => void;
+type ResultSetCallback<T> = (rows: T) => void;
 type ErrorCallback = (err: Error) => void;
+type EventualParams<T> = any[] | ((previousResult: T) => any[]);
 
-interface Query {
-  promise: Promise<object[]>;
+export interface InsertResults {
+  insertId: number;
+}
+
+export interface Query<T = object> {
+  promise: Promise<T>;
 
   onError(callback: ErrorCallback): this;
 
-  onResults(callback: ResultSetCallback): this;
+  onResults(callback: ResultSetCallback<T>): this;
 
-  thenQuery(sql: string, params?: []): Query;
+  thenQuery<U>(sql: string, params?: EventualParams<T>): Query<U>;
 }
 
-export class QueryImpl {
+export class QueryImpl<T> {
   private _onError: ErrorCallback = null;
-  private _onResults: ResultSetCallback = null;
+  private _onResults: ResultSetCallback<T> = null;
   private err: Error = null;
-  private nextQuery: QueryImpl = null;
-  private rows: object[] = null;
+  private nextQuery: QueryImpl<unknown> = null;
+  private rows: T = null;
 
   constructor(
     private readonly client: MysqlClient,
     public readonly sql: string,
-    public readonly params: any[]
+    public readonly params: () => any[]
   ) {
   }
 
-  get promise(): Promise<object[]> {
+  get promise(): Promise<T> {
     if (this.rows == null) {
       return new Promise((resolve, reject) => this
         .onResults(rows => resolve(rows))
@@ -43,7 +48,8 @@ export class QueryImpl {
   }
 
   execute(): void {
-    this.client.db.query(this.sql, this.params, (err: Error, rows: []) => {
+    const realParams = typeof this.params === 'function' ? this.params() : this.params == null;
+    this.client.db.query(this.sql, realParams, (err: Error, rows: any) => {
       if (err) {
         env.debug(() => `SQL error: ${JSON.stringify(err)} ${this.sql}`);
         this.err = err;
@@ -52,13 +58,17 @@ export class QueryImpl {
         }
         return;
       }
-      if (rows != null && rows.length > 0) {
+      if (rows != null && ((Array.isArray(rows) && rows.length > 0) || !Array.isArray(rows))) {
         env.debug(() => {
           const lines = [`SQL: ${unindent(this.sql)}`];
           if (this.params != null && this.params.length > 0) {
             lines.push(`Params: ${JSON.stringify(this.params)}`);
           }
-          lines.push(`Rows: ${rows.length}`);
+          if (Array.isArray(rows)) {
+            lines.push(`Rows: ${rows.length}`);
+          } else {
+            lines.push(`Results: ${JSON.stringify(rows)}`);
+          }
           return lines.join('\n');
         });
       }
@@ -83,7 +93,7 @@ export class QueryImpl {
   }
 
   // noinspection JSUnusedGlobalSymbols
-  onResults(callback: ResultSetCallback): this {
+  onResults(callback: ResultSetCallback<T>): this {
     if (this.rows == null) {
       this._onResults = callback;
     } else {
@@ -93,9 +103,9 @@ export class QueryImpl {
   }
 
   // noinspection JSUnusedGlobalSymbols
-  thenQuery(sql: string, params?: []): QueryImpl {
-    this.nextQuery = new QueryImpl(this.client, sql, params);
-    return this.nextQuery;
+  thenQuery<U>(sql: string, params?: EventualParams<T>): QueryImpl<U> {
+    const paramResolver: () => any[] = typeof params === 'function' ? () => params(this.rows) : () => params;
+    return (this.nextQuery = new QueryImpl<U>(this.client, sql, paramResolver));
   }
 }
 
@@ -131,7 +141,12 @@ export abstract class MysqlClient {
       this.query(sql, params)
         .onError(err => reject(err))
         .onResults(rows => {
-          resolve((rows || []).map(row => type.fromObject(row)));
+          if (Array.isArray(rows)) {
+            resolve((rows || []).map(row => type.fromObject(row)));
+          } else {
+            env.debug(() => `Expected an array, but found: ${JSON.stringify(rows)}`);
+            resolve([]);
+          }
         });
     });
   }
@@ -140,8 +155,8 @@ export abstract class MysqlClient {
     return this.findObject(type, this.selectOne(fieldName), [fieldValue]);
   }
 
-  public query(sql: string, params?: any[]): Query {
-    const query = new QueryImpl(this, sql, params);
+  public query<T>(sql: string, params?: any[]): Query<T> {
+    const query = new QueryImpl<T>(this, sql, () => params);
     query.execute();
     return query;
   }

@@ -22,13 +22,10 @@ migrator.onReady(() => {
     TwitterUserStore.getInstance(),
     FeedStore.getInstance(),
   ])
-    .then(([tweetStore, twitterEventStore, twitterUserStore, feedStore]) => {
-      Promise.all([
+    .then(([tweetStore, twitterEventStore, twitterUserStore, feedStore]) =>
+      TwitterClient.getInstance(config.twitter, twitterEventStore, tweetStore).then(twitterClient =>
         SlackBot.getInstance(new SlackClient(config.slack), feedStore, twitterUserStore,
-          tweetStore, twitterEventStore, new SlackTweetFormatter()),
-        TwitterClient.getInstance(config.twitter, twitterEventStore, tweetStore),
-      ])
-        .then(([slackBot, twitterClient]) => {
+          tweetStore, twitterEventStore, new SlackTweetFormatter(), twitterClient).then(slackBot => {
           tweetStore.follows().then(users => {
             twitterClient.addUsers(...users);
             twitterClient.onTweet(tweet => {
@@ -57,8 +54,10 @@ migrator.onReady(() => {
             twitterClient.connect();
           });
         })
-        .catch(env.debugFailure('SlackBot/TwitterClient failure'));
-    })
+          .catch(env.debugFailure('SlackBot/TwitterClient failure'))
+      )
+        .catch(env.debugFailure('Could not create TwitterClient'))
+    )
     .catch(env.debugFailure('Could not start SlackBot'));
 // wtfnode.dump();
 })

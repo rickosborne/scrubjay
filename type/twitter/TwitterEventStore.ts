@@ -1,20 +1,16 @@
 import {MysqlClient} from '../MysqlClient';
 import {Tweet} from './Tweet';
 
-interface DataRow {
-  data: object;
-}
-
 export class TwitterEventStore extends MysqlClient {
   get latest(): Promise<Tweet> {
-    return this.query(`
+    return this.query<{data: object}[]>(`
       SELECT data
       FROM twitter_event
       WHERE JSON_TYPE(JSON_EXTRACT(data, '$.in_reply_to_status_id_str')) = 'NULL'
         AND JSON_TYPE(JSON_EXTRACT(data, '$.retweeted_status')) IS NULL
       ORDER BY id DESC
       LIMIT 1
-    `).promise.then((rows: DataRow[]) => rows == null || rows.length < 1 ? null : Tweet.fromObject(rows[0].data));
+    `).promise.then(rows => rows == null || rows.length < 1 ? null : Tweet.fromObject(rows[0].data));
   }
 
   static getInstance(): Promise<TwitterEventStore> {
@@ -22,7 +18,7 @@ export class TwitterEventStore extends MysqlClient {
   }
 
   latestFor(username: string): Promise<Tweet> {
-    return this.query(`
+    return this.query<{data: object}[]>(`
       SELECT data
       FROM twitter_event
       WHERE (username = ?)
@@ -30,7 +26,7 @@ export class TwitterEventStore extends MysqlClient {
         AND JSON_TYPE(JSON_EXTRACT(data, '$.retweeted_status')) IS NULL
       ORDER BY id DESC
       LIMIT 1
-    `, [username.replace(/^@/, '')]).promise.then((rows: DataRow[]) => {
+    `, [username.replace(/^@/, '')]).promise.then(rows => {
       return rows == null || rows.length < 1 ? null : Tweet.fromObject(rows[0].data);
     });
   }
@@ -38,7 +34,7 @@ export class TwitterEventStore extends MysqlClient {
   save(event: {[key: string]: {[key: string]: string}} = null) {
     const username = event != null && event['user'] != null ? event['user']['screen_name'] : null;
     if (event != null) {
-      this.query(`
+      this.query<void>(`
         INSERT INTO twitter_event (username, data)
         VALUES (?, ?)
       `, [username, JSON.stringify(event)]);

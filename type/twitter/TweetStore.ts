@@ -40,7 +40,7 @@ export class TweetStore extends MysqlClient {
   }
 
   public store(tweet: Tweet) {
-    this.query(`
+    this.query<void>(`
       INSERT IGNORE INTO tweet (id, username, created, txt, html)
       VALUES (?, ?, ?, ?, ?)
       ;

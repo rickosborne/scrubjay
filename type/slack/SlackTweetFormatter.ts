@@ -196,7 +196,7 @@ export class SlackTweetFormatter {
 
 // noinspection JSMethodCanBeStatic
   public slackEscape(s: string): string {
-    return s
+    return (s || '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')

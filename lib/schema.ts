@@ -8,14 +8,14 @@ class Schema extends MysqlClient {
   private ready = false;
 
   public migrate() {
-    this.query(`
+    this.query<void>(`
       CREATE TABLE IF NOT EXISTS ident (
         id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(40) NOT NULL,
         slug VARCHAR(40) NOT NULL
       )
       ;
-    `).thenQuery(`
+    `).thenQuery<void>(`
       CREATE TABLE IF NOT EXISTS twitter_follow (
         id VARCHAR(40),
         username VARCHAR(40) NOT NULL PRIMARY KEY,
@@ -28,7 +28,7 @@ class Schema extends MysqlClient {
         CONSTRAINT fk_twitter_follow_ident FOREIGN KEY (ident_id) REFERENCES ident(id)
       )
       ;
-    `).thenQuery(`
+    `).thenQuery<void>(`
       CREATE TABLE IF NOT EXISTS tweet (
         id VARCHAR(40) NOT NULL PRIMARY KEY,
         username VARCHAR(40) NOT NULL,
@@ -38,7 +38,7 @@ class Schema extends MysqlClient {
         CONSTRAINT fk_tweet_username FOREIGN KEY (username) REFERENCES twitter_follow(username)
       )
       ;
-    `).thenQuery(`
+    `).thenQuery<void>(`
       CREATE TABLE IF NOT EXISTS twitter_event (
         id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
         created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -46,13 +46,13 @@ class Schema extends MysqlClient {
         data JSON NOT NULL
       )
       ;
-    `).thenQuery(`
+    `).thenQuery<void>(`
       CREATE TABLE IF NOT EXISTS slack_feed (
         channel_id VARCHAR(40) NOT NULL PRIMARY KEY,
         channel_name VARCHAR(40) NOT NULL
       )
       ;
-    `).thenQuery(`
+    `).thenQuery<void>(`
       CREATE TABLE IF NOT EXISTS slack_feed_twitter (
         slack_channel_id VARCHAR(40) NOT NULL,
         twitter_username VARCHAR(40) NOT NULL,

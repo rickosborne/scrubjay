@@ -2,11 +2,12 @@ import {CommandSummary, EventuallyPostable, SlackClient} from './SlackClient';
 import {FeedChannel, FeedStore} from './FeedStore';
 import env from '../../lib/env';
 import {SlackTweetFormatter} from './SlackTweetFormatter';
-import {TwitterUserStore} from '../twitter/TwitterUser';
+import {TwitterUser, TwitterUserStore} from '../twitter/TwitterUser';
 import {TweetStore} from '../twitter/TweetStore';
 import {TwitterEventStore} from '../twitter/TwitterEventStore';
 import {Tweet} from '../twitter/Tweet';
 import {PostableMessage} from './PostableMessage';
+import {TwitterClient} from '../twitter/TwitterClient';
 
 function regexify(stringOrPattern: string | RegExp): RegExp {
   return stringOrPattern instanceof RegExp ? stringOrPattern : new RegExp(stringOrPattern, 'i');
@@ -78,6 +79,7 @@ export class SlackBot {
     private readonly tweetStore: TweetStore,
     private readonly twitterEventStore: TwitterEventStore,
     private readonly slackTweetFormatter: SlackTweetFormatter,
+    private readonly twitterClient: TwitterClient,
   ) {
   }
 
@@ -89,8 +91,10 @@ export class SlackBot {
     tweetStore: TweetStore,
     twitterEventStore: TwitterEventStore,
     slackTweetFormatter: SlackTweetFormatter,
+    twitterClient: TwitterClient,
   ): Promise<SlackBot> {
-    return new SlackBot(slackClient, feedStore, twitterUserStore, tweetStore, twitterEventStore, slackTweetFormatter).start();
+    return new SlackBot(slackClient, feedStore,
+      twitterUserStore, tweetStore, twitterEventStore, slackTweetFormatter, twitterClient).start();
   }
 
   public command(key: string | RegExp, helpText: string = null, callback?: (command: Command) => void): void {
@@ -139,6 +143,24 @@ export class SlackBot {
 
   private start(): Promise<this> {
     this.command('ping', 'See if I\'m online.', command => command.reply('pong'));
+    this.command('identify', null, command => command
+      .param('name', 'Fetch information about a twitterer', param => param
+        .reply((message, actions, name) => this.twitterClient
+          .fetchUser(name)
+          .then((fetched: TwitterUser) => {
+            if (fetched == null) {
+              return `Could not find a Twitter user named \`${this.slackTweetFormatter.slackEscape(name)}\``;
+            }
+            return this.twitterUserStore.merge(fetched).then(merged => {
+              this.twitterClient.addUsers(merged).connect();
+              const linkedName = this.slackTweetFormatter.userLink(merged.name);
+              const fullName = this.slackTweetFormatter.slackEscape(merged.fullName);
+              return `Followed ${linkedName} (${fullName}).`;
+            });
+          })
+        )
+      )
+    );
     this.command('channels', 'What channels am I aware of?', command => command
       .reply(() => this.slackFeedStore.channels.then(channels => {
           if (channels == null || channels.length === 0) {

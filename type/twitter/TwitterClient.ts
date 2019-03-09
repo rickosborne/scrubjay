@@ -23,8 +23,8 @@ export class TwitterClient {
   private stream: EventEmitter;
   private readonly tweetCallbacks: TweetCallback[] = [];
   private twitter: Twitter;
-  public readonly userNames: string[] = [];
   public readonly userIds: string[] = [];
+  public readonly userNames: string[] = [];
 
   // noinspection JSUnusedGlobalSymbols
   static fromObject(object: {}): TwitterClient {
@@ -88,6 +88,11 @@ export class TwitterClient {
         });
       });
     }, wait);
+  }
+
+  fetchUser(name: string): Promise<TwitterUser> {
+    return this.twitter.get('users/show', {screen_name: name})
+      .then(response => TwitterUser.fromObject(response));
   }
 
   public onTweet(callback: TweetCallback) {
