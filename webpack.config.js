@@ -8,7 +8,7 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: 'ts-loader?configFile=tsconfig.webpack.json',
         exclude: /node_modules/
       }
     ]
