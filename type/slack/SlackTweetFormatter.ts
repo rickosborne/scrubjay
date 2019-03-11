@@ -149,8 +149,7 @@ export class SlackTweetFormatter {
     const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
     const lines = [`${explanation}${attribution}`];
     const originalText: string = tweet.longText;
-    const entities: TweetEntities = tweet.extended == null || tweet.extended.entities == null ? tweet.entities : tweet.extended.entities;
-    const sparseChunks = this.chunksForEntities(entities, later);
+    const sparseChunks = this.chunksForEntities(tweet.longTextEntities, later);
     const result = this.replaceChunks(sparseChunks, originalText, flags);
     lines.push(result);
     return lines.join('\n');

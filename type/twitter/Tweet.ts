@@ -3,7 +3,7 @@ import {ExtendedTweet} from './ExtendedTweet';
 import {buildFromObject} from '../FromObject';
 import {TweetEntities} from './TweetEntities';
 
-const entityMap: {[key: string]: string} = {
+const entityMap: { [key: string]: string } = {
   '&': '&amp;',
   '<': '&lt;',
   '>': '&gt;',
@@ -59,8 +59,24 @@ export class Tweet {
     return this._textAsHtml;
   }
 
-  get longText() {
-    return this.extended == null || this.extended.text == null ? this.text : this.extended.text;
+  get longText(): string {
+    if (this.extended != null && this.extended.text != null) {
+      return this.extended.text;
+    }
+    if (this.retweeted != null) {
+      return this.retweeted.longText;
+    }
+    return this.text;
+  }
+
+  get longTextEntities(): TweetEntities {
+    if (this.extended != null && this.extended.entities != null) {
+      return this.extended.entities;
+    }
+    if (this.retweeted != null) {
+      return this.retweeted.longTextEntities;
+    }
+    return this.entities;
   }
 
   private readonly _text: string;
