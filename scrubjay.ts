@@ -24,8 +24,10 @@ migrator.onReady(() => {
   ])
     .then(([tweetStore, twitterEventStore, twitterUserStore, feedStore]) =>
       TwitterClient.getInstance(config.twitter, twitterEventStore, tweetStore).then(twitterClient =>
-        SlackBot.getInstance(new SlackClient(config.slack), feedStore, twitterUserStore,
-          tweetStore, twitterEventStore, new SlackTweetFormatter(), twitterClient).then(slackBot => {
+        SlackBot.getInstance(
+          new SlackClient(config.slack), new SlackTweetFormatter(), feedStore,
+          twitterUserStore, tweetStore, twitterEventStore, twitterClient, config
+        ).then(slackBot => {
           tweetStore.follows().then(users => {
             twitterClient.addUsers(...users);
             twitterClient.onTweet(tweet => {

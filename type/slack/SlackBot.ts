@@ -8,6 +8,7 @@ import {TwitterEventStore} from '../twitter/TwitterEventStore';
 import {Tweet} from '../twitter/Tweet';
 import {PostableMessage} from './PostableMessage';
 import {TwitterClient} from '../twitter/TwitterClient';
+import {Config} from '../Config';
 
 function regexify(stringOrPattern: string | RegExp): RegExp {
   return stringOrPattern instanceof RegExp ? stringOrPattern : new RegExp(stringOrPattern, 'i');
@@ -72,29 +73,34 @@ export class Command {
 
 export class SlackBot {
 
-  private constructor(
+  constructor(
     private readonly slackClient: SlackClient,
     private readonly slackFeedStore: FeedStore,
+    private readonly slackTweetFormatter: SlackTweetFormatter,
     private readonly twitterUserStore: TwitterUserStore,
     private readonly tweetStore: TweetStore,
     private readonly twitterEventStore: TwitterEventStore,
-    private readonly slackTweetFormatter: SlackTweetFormatter,
     private readonly twitterClient: TwitterClient,
+    private readonly config: Config,
   ) {
   }
 
   private readonly commands: Command[] = [];
+
   static getInstance(
     slackClient: SlackClient,
+    slackTweetFormatter: SlackTweetFormatter,
     feedStore: FeedStore,
     twitterUserStore: TwitterUserStore,
     tweetStore: TweetStore,
     twitterEventStore: TwitterEventStore,
-    slackTweetFormatter: SlackTweetFormatter,
     twitterClient: TwitterClient,
+    config: Config,
   ): Promise<SlackBot> {
-    return new SlackBot(slackClient, feedStore,
-      twitterUserStore, tweetStore, twitterEventStore, slackTweetFormatter, twitterClient).start();
+    return new SlackBot(
+      slackClient, feedStore, slackTweetFormatter,
+      twitterUserStore, tweetStore, twitterEventStore, twitterClient, config
+    ).start();
   }
 
   public command(key: string | RegExp, helpText: string = null, callback?: (command: Command) => void): void {
@@ -130,6 +136,10 @@ export class SlackBot {
 
     this.commands.forEach(addHelp);
     this.slackClient.replyTo(regexify(key), lines.join('\n'));
+  }
+
+  public messagesFromTweet(tweet: Tweet): PostableMessage[] {
+    return this.slackTweetFormatter.messagesFromTweet(tweet);
   }
 
   // noinspection JSMethodCanBeStatic
@@ -266,6 +276,9 @@ export class SlackBot {
         )
       )
     );
+    this.command('about', 'Show version and configuration information', command => {
+      command.reply(`Scrubjay build ${this.config.version || '?'}`);
+    });
     this.help('help');
     this.otherwise(message => {
       const alternatives = this.commandsLike(message.text);
@@ -279,10 +292,6 @@ export class SlackBot {
       .start()
       .then(() => env.debug(`Slack client online`))
       .then(() => this);
-  }
-
-  public messagesFromTweet(tweet: Tweet): PostableMessage[] {
-    return this.slackTweetFormatter.messagesFromTweet(tweet);
   }
 
 }

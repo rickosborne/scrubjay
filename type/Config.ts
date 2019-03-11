@@ -87,6 +87,7 @@ export class Config {
       .obj('twitter', TwitterConfig)
       .obj('mysql', MysqlConfig)
       .obj('slack', SlackConfig)
+      .string('version', false)
       .orThrow(message => new Error(`Could not build Config: ${message}`));
   }
 
@@ -96,6 +97,7 @@ export class Config {
     public readonly twitter: TwitterConfig,
     public readonly mysql: MysqlConfig,
     public readonly slack: SlackConfig,
+    public readonly version?: string
   ) {
   }
 }

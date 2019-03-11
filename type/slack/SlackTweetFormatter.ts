@@ -12,9 +12,6 @@ import {KnownBlockable} from './block/SlackBlock';
 import * as slack from '@slack/client';
 import {TextBlock} from './block/TextBlock';
 import {PostableMessage} from './PostableMessage';
-import {study} from '../../lib/study';
-import * as fetch from 'node-fetch';
-import env from '../../lib/env';
 import {fixed, getTimeHHMM} from '../../lib/time';
 
 interface EntityExtractor<T extends Indexed> {
@@ -51,27 +48,7 @@ const extractors: EntityExtractor<Indexed>[] = [
   },
   {
     access: ents => ents.urls,
-    convert: (url: TweetUrl) => {
-      study(url.expanded)
-        .ifMatch(/^https?:\/\/bit.ly\/(.+?)/, linkId => {
-          const body = JSON.stringify({bitlink_id: linkId});
-          fetch.default('https://api-ssl.bitly.com/v4/expand', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': '' + body.length
-            },
-            body
-          })
-            .then(res => res.json())
-            .then(link => {
-              env.debug(() => `${JSON.stringify(link, null, 2)}`);
-              // later.send(`<${link}>`);
-            })
-          ;
-        });
-      return `<${url.expanded}|${url.display}>`;
-    }
+    convert: (url: TweetUrl) => `<${url.expanded}|${url.display}>`
   },
   {
     access: ents => ents.media,
