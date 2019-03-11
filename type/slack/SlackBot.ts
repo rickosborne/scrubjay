@@ -259,10 +259,16 @@ export class SlackBot {
         })
       )
     );
-    this.command('latest tweet', 'Show the latest tweet I\'ve tracked', command => command
-      .reply(() => this.twitterEventStore.latest.then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet)))
-    );
     this.command('latest', null, command => command
+      .subcommand('tweet', 'Show the latest tweet I\'ve tracked (no RTs or replies)', latestTweet => latestTweet
+        .reply(() => this.twitterEventStore.latest().then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet)))
+      )
+      .subcommand('retweet', 'Show the latest tweet I\'ve tracked (with RTs)', latestTweet => latestTweet
+        .reply(() => this.twitterEventStore.latest(true).then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet)))
+      )
+      .subcommand('reply', 'Show the latest tweet I\'ve tracked (with replies)', latestTweet => latestTweet
+        .reply(() => this.twitterEventStore.latest(false, true).then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet)))
+      )
       .param('username', 'Show the latest tweet from $username', param => param
         .reply((message, actions, username) => this.twitterEventStore
           .latestFor(username).then(tweet => {
