@@ -4,23 +4,48 @@ import {FromObject} from '../type/FromObject';
 import {getTimeHHMMSS} from './time';
 import {indentHanging} from './unindent';
 import {obtain, Obtainable} from '../type/Obtainable';
-
-const debug = !!process.env['DEBUG'];
+import {boolish} from './boolish';
+import {PathLike} from 'fs';
 
 type AnySupplier = () => any;
+export type Logger = (message?: any, ...optionalParams: any[]) => void;
+interface Environment {
+  [key: string]: any;
+}
 
-class Env {
-  // noinspection JSMethodCanBeStatic
-  debug(callback: string | AnySupplier, err: any = null) {
-    if (debug) {
+interface FileSystemAbstraction {
+  readFileSync(path: PathLike | number, options: { encoding: string; flag?: string; } | string): string;
+}
+
+export class Env {
+  private readonly _debug: boolean;
+
+  constructor(
+    private readonly _env: Environment = {},
+    public readonly infoLogger: Logger = console.log,
+    public readonly errorLogger: Logger = console.error,
+    private _fs: FileSystemAbstraction = fs
+  ) {
+    this._debug = this.param('DEBUG', false, v => boolish(v))
+      || this.param('NODE_DEBUG', false, v => boolish(v));
+  }
+
+  public get isDebug(): boolean {
+    return this._debug;
+  }
+
+  public debug(callback: string | AnySupplier, err: any = null) {
+    if (this._debug) {
       const message = typeof callback === 'function' ? callback() : callback;
       if (message != null) {
         const msg = typeof message === 'string' ? message : JSON.stringify(message);
-        console.log(`${getTimeHHMMSS()} ${indentHanging(msg, 9)}`);
+        if (this.infoLogger != null) {
+          this.infoLogger(`${getTimeHHMMSS()} ${indentHanging(msg, 9)}`);
+        }
       }
-      if (err instanceof Error) {
-        console.error(err.message);
-        console.error(err.stack);
+      if (err instanceof Error && this.errorLogger != null) {
+        this.errorLogger(err.message);
+        this.errorLogger(err.stack);
       }
     }
   }
@@ -30,13 +55,18 @@ class Env {
   }
 
   // noinspection JSMethodCanBeStatic
-  fromJson<T = {}>(path: string, type?: FromObject<T>): T {
-    const object = JSON.parse(fs.readFileSync(path, {encoding: 'utf8'}));
+  public fromJson<T = {}>(path: string, type?: FromObject<T>): T {
+    const object = JSON.parse(this._fs.readFileSync(path, {encoding: 'utf8'}));
     return type == null ? object : type.fromObject(object);
   }
 
-  param<T = string>(name: string, defaultValue: T = null, converter: (s: string) => T = (s) => <T>(<unknown>s), thisArg: {} = null): T {
-    const value = process.env[name];
+  public param<T = string>(
+    name: string,
+    defaultValue: T = null,
+    converter: (s: string) => T = (s) => <T>(<unknown>s),
+    thisArg: {} = null,
+  ): T {
+    const value = this._env[name];
     if (value == null) {
       if (defaultValue == null) {
         throw new Error(`Missing required parameter: ${name}`);
@@ -62,5 +92,5 @@ class Env {
   }
 }
 
-const env = new Env();
+const env = new Env(process.env, console.log, console.error, fs);
 export default env;

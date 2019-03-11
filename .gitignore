@@ -7,3 +7,6 @@ dist/
 
 # Dev config
 scrubjay.conf.json
+
+# Code coverage
+.nyc_output/

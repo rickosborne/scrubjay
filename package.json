@@ -10,14 +10,20 @@
     "twitter": "^1.7.1"
   },
   "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/ejs": "^2.6.3",
+    "@types/mocha": "^5.2.6",
     "@types/mysql2": "github:types/mysql2",
     "@types/node": "^11.10.0",
-    "@types/ejs": "^2.6.3",
     "@types/node-fetch": "^2.1.6",
     "@types/twitter": "^1.7.0",
     "bufferutil": "^4.0.1",
     "cardinal": "^2.1.1",
+    "chai": "^4.2.0",
+    "mocha": "^6.0.2",
+    "nyc": "^13.3.0",
     "ts-loader": "^5.3.3",
+    "ts-node": "^8.0.3",
     "tslint": "^5.13.1",
     "typescript": "^3.3.3333",
     "utf-8-validate": "^5.0.2",
@@ -35,7 +41,8 @@
     "precompile": "npm run clean && npm run lint",
     "prepackage": "npm run clean && npm run lint",
     "prestart": "npm run package",
-    "start": "node $NODE_DEBUG_OPTION dist/scrubjay.js"
+    "start": "node $NODE_DEBUG_OPTION dist/scrubjay.js",
+    "test": "TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' mocha --require ts-node/register test/**/*.ts"
   },
   "version": "0.1.0"
 }
