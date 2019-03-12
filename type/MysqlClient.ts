@@ -1,16 +1,28 @@
 import * as mysql2 from 'mysql2';
 import {getConfig, MysqlConfig} from './Config';
-import env from '../lib/env';
+import env, {Logger} from '../lib/env';
 import {FromObject} from './FromObject';
 import {unindent} from '../lib/unindent';
+import * as mysql from 'mysql';
+import {RowDataPacket} from 'mysql2';
+import {OkPacket} from 'mysql2';
+import {FieldPacket} from 'mysql2';
 
 type ResultSetCallback<T> = (rows: T) => void;
 type ErrorCallback = (err: Error) => void;
 type EventualParams<T> = any[] | ((previousResult: T) => any[]);
 
-export interface InsertResults {
-  insertId: number;
+export interface MysqlAdapter {
+  createConnection(options: mysql.ConnectionOptions): mysql2.Connection;
+
+  query?<T extends RowDataPacket[][] | RowDataPacket[] | OkPacket | OkPacket[]>(
+    sql: string,
+    values: any | any[] | { [param: string]: any },
+    callback?: (err: any, result: T, fields: FieldPacket[]) => any
+  ): mysql2.Query;
 }
+
+export type InsertResults = mysql2.OkPacket;
 
 export interface Query<T = object> {
   promise: Promise<T>;
@@ -30,9 +42,10 @@ export class QueryImpl<T> {
   private rows: T = null;
 
   constructor(
-    private readonly client: MysqlClient,
+    private readonly db: mysql2.Connection,
     public readonly sql: string,
-    public readonly params: () => any[]
+    public readonly params: () => any[],
+    private readonly logger: Logger = env.debug.bind(env),
   ) {
   }
 
@@ -48,21 +61,23 @@ export class QueryImpl<T> {
   }
 
   execute(): void {
-    const realParams = typeof this.params === 'function' ? this.params() : this.params == null;
-    this.client.db.query(this.sql, realParams, (err: Error, rows: any) => {
+    const realParams: any[] = typeof this.params === 'function' ? this.params() : this.params;
+    this.db.query(this.sql, realParams, (err: Error, rows: any) => {
       if (err) {
-        env.debug(() => `SQL error: ${JSON.stringify(err)} ${this.sql}`);
+        if (this.logger != null) {
+          this.logger(() => `SQL error: ${JSON.stringify(err)} ${this.sql}`);
+        }
         this.err = err;
         if (this._onError != null) {
           this._onError(err);
         }
         return;
       }
-      if (rows != null && ((Array.isArray(rows) && rows.length > 0) || !Array.isArray(rows))) {
-        env.debug(() => {
+      if (this.logger != null && rows != null && ((Array.isArray(rows) && rows.length > 0) || !Array.isArray(rows))) {
+        this.logger(() => {
           const lines = [`SQL: ${unindent(this.sql)}`];
-          if (this.params != null && this.params.length > 0) {
-            lines.push(`Params: ${JSON.stringify(this.params)}`);
+          if (realParams != null && realParams.length > 0) {
+            lines.push(`Params: ${JSON.stringify(realParams)}`);
           }
           if (Array.isArray(rows)) {
             lines.push(`Rows: ${rows.length}`);
@@ -105,29 +120,26 @@ export class QueryImpl<T> {
   // noinspection JSUnusedGlobalSymbols
   thenQuery<U>(sql: string, params?: EventualParams<T>): QueryImpl<U> {
     const paramResolver: () => any[] = typeof params === 'function' ? () => params(this.rows) : () => params;
-    return (this.nextQuery = new QueryImpl<U>(this.client, sql, paramResolver));
+    return (this.nextQuery = new QueryImpl<U>(this.db, sql, paramResolver));
   }
 }
 
 export abstract class MysqlClient {
 
   static _config: MysqlConfig;
-
-  static get config(): MysqlConfig {
-    if (MysqlClient._config == null) {
-      MysqlClient._config = getConfig().mysql;
-    }
-    return MysqlClient._config;
-  }
-
+  static _connectionOptions: mysql2.ConnectionOptions;
   static _db: mysql2.Connection;
 
-  // noinspection JSMethodCanBeStatic
-  public get db() {
-    if (MysqlClient._db == null) {
-      env.debug(() => `Mysql setup`);
-      const config = MysqlClient.config;
-      MysqlClient._db = mysql2.createConnection({
+  private static config(configAccessor: () => { mysql: MysqlConfig } = getConfig): MysqlConfig {
+    if (this._config == null) {
+      this._config = configAccessor().mysql;
+    }
+    return this._config;
+  }
+
+  private static connectionOptions(config: MysqlConfig = this.config()): mysql2.ConnectionOptions {
+    if (this._connectionOptions == null) {
+      this._connectionOptions = {
         // waitForConnections: true,
         host: config.host,
         port: config.port,
@@ -136,9 +148,29 @@ export abstract class MysqlClient {
         database: config.schema,
         // connectionLimit: 4,
         // queueLimit: 0
-      });
+      };
     }
-    return MysqlClient._db;
+    return this._connectionOptions;
+  }
+
+  protected static db(
+    adapter: MysqlAdapter = mysql2,
+    connectionOptions: mysql2.ConnectionOptions = this.connectionOptions(),
+    logger: Logger = env.debug.bind(env)
+  ) {
+    if (this._db == null) {
+      if (logger != null) {
+        logger(() => `Mysql setup`);
+      }
+      this._db = adapter.createConnection(connectionOptions);
+    }
+    return this._db;
+  }
+
+  constructor(
+    private readonly _db: mysql2.Connection = MysqlClient.db(),
+    private readonly logger: Logger = env.debug.bind(env)
+  ) {
   }
 
   public findObject<T>(type: FromObject<T>, sql: string, params: any[] = []): Promise<T | null> {
@@ -154,7 +186,9 @@ export abstract class MysqlClient {
           if (Array.isArray(rows)) {
             resolve((rows || []).map(row => type.fromObject(row)));
           } else {
-            env.debug(() => `Expected an array, but found: ${JSON.stringify(rows)}`);
+            if (this.logger != null) {
+              this.logger(() => `Expected an array, but found: ${JSON.stringify(rows)}`);
+            }
             resolve([]);
           }
         });
@@ -166,7 +200,7 @@ export abstract class MysqlClient {
   }
 
   public query<T>(sql: string, params?: any[]): Query<T> {
-    const query = new QueryImpl<T>(this, sql, () => params);
+    const query = new QueryImpl<T>(this._db, sql, () => params, this.logger);
     query.execute();
     return query;
   }
