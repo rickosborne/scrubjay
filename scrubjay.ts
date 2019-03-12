@@ -11,7 +11,7 @@ import {FeedStore} from './type/slack/FeedStore';
 import {TwitterUser, TwitterUserStore} from './type/twitter/TwitterUser';
 import {SlackTweetFormatter} from './type/slack/SlackTweetFormatter';
 import {SlackBot} from './type/slack/SlackBot';
-import {config} from './type/Config';
+import {getConfig} from './type/Config';
 import {TwitterEventStore} from './type/twitter/TwitterEventStore';
 // import * as wtfnode from 'wtfnode';
 
@@ -22,7 +22,8 @@ migrator.onReady(() => {
     TwitterUserStore.getInstance(),
     FeedStore.getInstance(),
   ])
-    .then(([tweetStore, twitterEventStore, twitterUserStore, feedStore]) =>
+    .then(([tweetStore, twitterEventStore, twitterUserStore, feedStore]) => {
+      const config = getConfig();
       TwitterClient.getInstance(config.twitter, twitterEventStore, tweetStore).then(twitterClient =>
         SlackBot.getInstance(
           new SlackClient(config.slack), new SlackTweetFormatter(), feedStore,
@@ -58,8 +59,8 @@ migrator.onReady(() => {
         })
           .catch(env.debugFailure('SlackBot/TwitterClient failure'))
       )
-        .catch(env.debugFailure('Could not create TwitterClient'))
-    )
+        .catch(env.debugFailure('Could not create TwitterClient'));
+    })
     .catch(env.debugFailure('Could not start SlackBot'));
 // wtfnode.dump();
 })

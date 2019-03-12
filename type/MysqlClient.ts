@@ -1,5 +1,5 @@
 import * as mysql2 from 'mysql2';
-import {config} from './Config';
+import {getConfig, MysqlConfig} from './Config';
 import env from '../lib/env';
 import {FromObject} from './FromObject';
 import {unindent} from '../lib/unindent';
@@ -111,19 +111,29 @@ export class QueryImpl<T> {
 
 export abstract class MysqlClient {
 
+  static _config: MysqlConfig;
+
+  static get config(): MysqlConfig {
+    if (MysqlClient._config == null) {
+      MysqlClient._config = getConfig().mysql;
+    }
+    return MysqlClient._config;
+  }
+
   static _db: mysql2.Connection;
 
   // noinspection JSMethodCanBeStatic
   public get db() {
     if (MysqlClient._db == null) {
       env.debug(() => `Mysql setup`);
+      const config = MysqlClient.config;
       MysqlClient._db = mysql2.createConnection({
         // waitForConnections: true,
-        host: config.mysql.host,
-        port: config.mysql.port,
-        user: config.mysql.username,
-        password: config.mysql.password,
-        database: config.mysql.schema,
+        host: config.host,
+        port: config.port,
+        user: config.username,
+        password: config.password,
+        database: config.schema,
         // connectionLimit: 4,
         // queueLimit: 0
       });

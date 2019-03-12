@@ -102,5 +102,14 @@ export class Config {
   }
 }
 
-const configPath = env.param('CONFIG_FILE', '/opt/scrubjay/config.json');
-export const config = env.fromJson(configPath, Config);
+export const getConfig = (() => {
+  let config: Config;
+  return () => {
+    if (config == null) {
+      const configPath = env.param('CONFIG_FILE', '/opt/scrubjay/config.json');
+      config = env.fromJson(configPath, Config);
+    }
+    return config;
+  };
+})();
+

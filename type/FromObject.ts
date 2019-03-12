@@ -5,6 +5,10 @@ export interface FromObject<T> {
   name: string;
 }
 
+export interface EnvLogger {
+  debug(callback: string | (() => string)): void;
+}
+
 type Constructor<T> = new(...args: any[]) => T;
 
 export interface Builder<T> {
@@ -34,6 +38,7 @@ export interface Builder<T> {
 export class Nope<T> implements Builder<T> {
   // noinspection JSUnusedGlobalSymbols
   constructor(
+    private logger: EnvLogger = env,
     public readonly message?: string,
     public readonly name?: string,
     public readonly typeName?: string,
@@ -63,7 +68,7 @@ export class Nope<T> implements Builder<T> {
   }
 
   orLog(): T | null {
-    env.debug(() => `!! Could not build: ${JSON.stringify(this)}`);
+    this.logger.debug(() => `!! Could not build: ${JSON.stringify(this)}`);
     return null;
   }
 
@@ -91,7 +96,11 @@ export class Nope<T> implements Builder<T> {
 export class Maybe<T> implements Builder<T> {
   private args: any[] = [];
 
-  constructor(public readonly ctor: Constructor<T>, public readonly object: {}) {
+  constructor(
+    private logger: EnvLogger,
+    public readonly ctor: Constructor<T>,
+    public readonly object: {},
+  ) {
   }
 
   bool(name: string, required: boolean = true): Builder<T> {
@@ -121,17 +130,17 @@ export class Maybe<T> implements Builder<T> {
     }
     if (value == null) {
       if (required) {
-        return new Nope<T>(`Missing required ${typeName} for ${names}`, _name, typeName, required, this.ctor.name);
+        return new Nope<T>(this.logger, `Missing required ${typeName} for ${names}`, _name, typeName, required, this.ctor.name);
       }
       this.args.push(null);
       return this;
     } else if (!tester(value)) {
-      return new Nope<T>(`Expected ${typeName} for ${names} found ${typeof value}`, _name, typeName, required, this.ctor.name);
+      return new Nope<T>(this.logger, `Expected ${typeName} for ${names} found ${typeof value}`, _name, typeName, required, this.ctor.name);
     }
     if (converter != null) {
       value = converter(value);
       if (value == null && required) {
-        return new Nope<T>(`Could not read ${typeName}`, _name, typeName, required, this.ctor.name);
+        return new Nope<T>(this.logger, `Could not read ${typeName}`, _name, typeName, required, this.ctor.name);
       }
     }
     this.args.push(value);
@@ -173,7 +182,7 @@ export class Maybe<T> implements Builder<T> {
   }
 
   skip(): this {
-    this.args.push(null);
+    this.args.push(undefined);
     return this;
   }
 
@@ -182,9 +191,9 @@ export class Maybe<T> implements Builder<T> {
   }
 }
 
-export function buildFromObject<T>(ctor: Constructor<T>, object: {}): Builder<T> {
+export function buildFromObject<T>(ctor: Constructor<T>, object: {}, logger: EnvLogger = env): Builder<T> {
   if (object == null || typeof object !== 'object') {
-    return new Nope<T>(`Null or not an object: ${typeof object}`, null, null, null, ctor.name);
+    return new Nope<T>(logger, `Null or not an object: ${typeof object}`, null, null, null, ctor.name);
   }
-  return new Maybe<T>(ctor, object);
+  return new Maybe<T>(logger, ctor, object);
 }
