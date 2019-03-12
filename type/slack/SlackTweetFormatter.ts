@@ -122,9 +122,11 @@ export class SlackTweetFormatter {
   }
 
   private markdownFromTweet(tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions): string {
-    const attribution = `*${this.userLink(tweet.user.name)}* (${tweet.user.fullName}):`;
+    const attribution = `*${this.userLink(tweet.user.name)}* (${tweet.user.fullName})`;
     const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
-    const lines = [`${explanation}${attribution}`];
+    const retweeted = tweet.retweeted == null ? ''
+      : ` retweeted ${this.userLink(tweet.retweeted.user.name)} (${tweet.retweeted.user.fullName})`;
+    const lines = [`${explanation}${attribution}${retweeted}:`];
     const originalText: string = tweet.longText;
     const sparseChunks = this.chunksForEntities(tweet.longTextEntities, later);
     const result = this.replaceChunks(sparseChunks, originalText, flags);
