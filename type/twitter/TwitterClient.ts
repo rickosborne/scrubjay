@@ -1,101 +1,18 @@
-import {buildFromObject} from '../FromObject';
-import * as Twitter from 'twitter';
-import {TwitterConfig} from '../Config';
-import env from '../../lib/env';
-import {TwitterEventStore} from './TwitterEventStore';
-import {TweetStore} from './TweetStore';
 import {Tweet} from './Tweet';
-import EventEmitter = NodeJS.EventEmitter;
 import {TwitterUser} from './TwitterUser';
+import {injectableType} from 'inclined-plane';
 
-type TweetCallback = (tweet: Tweet) => void;
+export type TweetCallback = (tweet: Tweet) => void;
 
-export class TwitterClient {
+export interface TwitterClient {
 
-  constructor(
-    config: TwitterConfig,
-    private readonly twitterEventStore: TwitterEventStore,
-    private readonly tweetStore: TweetStore,
-  ) {
-    this.twitter = new Twitter(config.credentials);
-  }
+  addUsers(...users: TwitterUser[]): this;
 
-  private stream: EventEmitter;
-  private readonly tweetCallbacks: TweetCallback[] = [];
-  private twitter: Twitter;
-  public readonly userIds: string[] = [];
-  public readonly userNames: string[] = [];
+  connect(backoff?: number): void;
 
-  // noinspection JSUnusedGlobalSymbols
-  static fromObject(object: {}): TwitterClient {
-    return buildFromObject(TwitterClient, object)
-      .orThrow(() => new Error(`Invalid twitter config`));
-  }
+  fetchUser(name: string): Promise<TwitterUser>;
 
-  static getInstance(
-    twitterConfig: TwitterConfig,
-    twitterEventStore: TwitterEventStore,
-    tweetStore: TweetStore,
-  ): Promise<TwitterClient> {
-    return Promise.resolve(new TwitterClient(twitterConfig, twitterEventStore, tweetStore));
-  }
-
-  public addUsers(...users: TwitterUser[]): this {
-    this.userNames.push(...users.map(user => user.name));
-    env.debug(() => `Following: ${this.userNames.join(', ')}`);
-    this.userIds.push(...users.map(user => '' + user.id));
-    return this;
-  }
-
-  public connect(backoff?: number) {
-    // @ts-ignore
-    if (this.stream != null && (typeof this.stream['destroy'] === 'function')) {
-      // @ts-ignore
-      this.stream.destroy();
-    }
-    let wait = backoff || 0;
-    setTimeout(() => {
-      env.debug('Twitter: connect');
-      this.twitter.stream('statuses/filter', {
-        follow: this.userIds.join(',')
-      }, stream => {
-        this.stream = stream;
-        stream.on('data', maybeTweet => {
-          let logEvent = false;
-          const tweet = Tweet.fromObject(maybeTweet);
-          if (tweet != null) {
-            env.debug(() => `@${tweet.user.name}: ${tweet.text.replace(/\s+/g, ' ')}`);
-            wait = 0;
-            if (this.userNames.indexOf(tweet.user.name) >= 0) {
-              logEvent = true;
-              this.tweetStore.store(tweet);
-              for (const callback of this.tweetCallbacks) {
-                callback(tweet);
-              }
-            }
-          } else {
-            logEvent = true;
-            env.debug(() => `Not a tweet: ${JSON.stringify(maybeTweet)}`);
-          }
-          if (logEvent) {
-            env.debug(maybeTweet);
-            this.twitterEventStore.save(maybeTweet);
-          }
-        });
-        stream.on('error', err => {
-          env.debug('Twitter stream error', err);
-          this.connect(wait === 0 ? 2000 : Math.min(30000, wait * 2));  // reconnect
-        });
-      });
-    }, wait);
-  }
-
-  fetchUser(name: string): Promise<TwitterUser> {
-    return this.twitter.get('users/show', {screen_name: name})
-      .then(response => TwitterUser.fromObject(response));
-  }
-
-  public onTweet(callback: TweetCallback) {
-    this.tweetCallbacks.push(callback);
-  }
+  onTweet(callback: TweetCallback): void;
 }
+
+export const TwitterClient = injectableType<TwitterClient>('TwitterClient');

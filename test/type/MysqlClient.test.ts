@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import {describe, it, beforeEach} from 'mocha';
+import {describe, it} from 'mocha';
 import {MysqlAdapter, MysqlClient} from '../../type/MysqlClient';
 import * as mysql2 from 'mysql2';
 import {RowDataPacket} from 'mysql2';
@@ -25,7 +25,8 @@ describe('MysqlClient', () => {
           return mockConnection;
         }
       };
-      super(MysqlClient.db(adapter, connectionOptions), logCallback);
+      super(logCallback);
+      this._db = MysqlClient.db(connectionOptions, adapter);
       this.dbAdapter = adapter;
     }
 
@@ -54,14 +55,7 @@ describe('MysqlClient', () => {
     }
   }
 
-  beforeEach('reset statics', () => {
-    MysqlClient._connectionOptions = null;
-    MysqlClient._config = null;
-    MysqlClient._db = null;
-  });
-
   describe('config (static)', () => {
-    it('starts empty', () => expect(MysqlClient._config).to.be.null);
     it('traverses to find mysql config', async () => {
       let optionsChecked = false;
       const connOpts: mysql2.ConnectionOptions = <mysql2.ConnectionOptions>{};

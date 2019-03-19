@@ -1,0 +1,11 @@
+import 'inclined-plane';
+import './MysqlClient';
+import './config/ScrubjayConfig.impl';
+import './slack/FeedStore.impl';
+import './slack/SlackBot.impl';
+import './slack/SlackClient.impl';
+import './slack/SlackTweetFormatter.impl';
+import './twitter/TweetStore.impl';
+import './twitter/TwitterClient.impl';
+import './twitter/TwitterEventStore.impl';
+import './twitter/TwitterUserStore.impl';

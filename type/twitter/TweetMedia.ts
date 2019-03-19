@@ -61,6 +61,7 @@ export class TweetMediaVideo {
     return buildFromObject(TweetMediaVideo, object)
       .list('aspect_ratio', 'number', false)
       .list('variants', TweetMediaVideoVariant, false)
+      .num('duration_millis', false)
       .orThrow(message => new Error(`Could not build TweetMediaVideo: ${message}`));
   }
 
@@ -68,6 +69,7 @@ export class TweetMediaVideo {
   constructor(
     public readonly aspectRatio?: number[],
     public readonly variants?: TweetMediaVideoVariant[],
+    public readonly durationMs?: number,
   ) {
   }
 }
@@ -76,6 +78,7 @@ export class TweetMedia implements Indexed {
   static readonly ANIMATED_GIF = 'animated_gif';
   static readonly PHOTO = 'photo';
   static readonly VIDEO = 'video';
+  static readonly VIDEO_MP4 = 'video/mp4';
 
   public static fromObject(object: {}): TweetMedia {
     return buildFromObject(TweetMedia, object)

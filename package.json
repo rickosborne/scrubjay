@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@slack/client": "^4.10.0",
+    "inclined-plane": "^0.3.0",
     "mysql2": "^1.6.5",
     "node-fetch": "^2.3.0",
     "twitter": "^1.7.1"

@@ -3,21 +3,6 @@ import {ExtendedTweet} from './ExtendedTweet';
 import {buildFromObject} from '../FromObject';
 import {TweetEntities} from './TweetEntities';
 
-const entityMap: { [key: string]: string } = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  '\'': '&#39;',
-  '/': '&#x2F;',
-  '`': '&#x60;',
-  '=': '&#x3D;'
-};
-
-function escapeHtml(string: string) {
-  return String(string).replace(/[&<>"'`=\/]/g, s => entityMap[s]);
-}
-
 export interface Indexed {
   indices: number[];
 }
@@ -44,21 +29,6 @@ export class Tweet {
     this._text = (extended != null && extended.text != null) ? extended.text : text;
   }
 
-  // noinspection JSUnusedGlobalSymbols
-  get textAsHtml() {
-    if (this._textAsHtml == null) {
-      let html = escapeHtml(this.text).replace(/\x0d?\x0a/g, '<br>');
-      if (this.extended != null && this.extended.entities != null) {
-        for (const url of (this.extended.entities.urls || [])) {
-          const link = '<' + 'a href="' + escapeHtml(url.expanded) + '">' + escapeHtml(url.display) + '</a>';
-          html = html.split(escapeHtml(url.url)).join(link);
-        }
-      }
-      this._textAsHtml = html;
-    }
-    return this._textAsHtml;
-  }
-
   get longText(): string {
     if (this.extended != null && this.extended.text != null) {
       return this.extended.text;
@@ -80,8 +50,6 @@ export class Tweet {
   }
 
   private readonly _text: string;
-
-  private _textAsHtml: string;
 
   static fromObject(object: {}): Tweet {
     return buildFromObject(Tweet, object)

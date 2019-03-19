@@ -1,5 +1,6 @@
 import {MysqlClient} from '../type/MysqlClient';
 import env from './env';
+import {buildInstance} from 'inclined-plane';
 
 type OnSchemaReady = () => void;
 
@@ -79,6 +80,6 @@ class Schema extends MysqlClient {
   }
 }
 
-export const migrator = new Schema();
+export const migrator = buildInstance(Schema);
 
 migrator.migrate();

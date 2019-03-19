@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
-import {Config} from '../../type/Config';
+import {TestableScrubjayConfig} from '../../type/config/ScrubjayConfig.impl';
 
 describe('Config', () => {
   it('picks up everything it should', () => {
@@ -31,7 +31,7 @@ describe('Config', () => {
       },
       version: 'some version'
     };
-    const config = Config.fromObject(json);
+    const config = TestableScrubjayConfig.fromObject(json);
     expect(config).to.not.eq(null);
     expect(config.version).to.equal(json.version);
     expect(config.outputPath).to.equal(json.outputPath);

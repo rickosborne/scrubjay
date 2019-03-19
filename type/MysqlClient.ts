@@ -1,5 +1,4 @@
 import * as mysql2 from 'mysql2';
-import {getConfig, MysqlConfig} from './Config';
 import env, {Logger} from '../lib/env';
 import {FromObject} from './FromObject';
 import {unindent} from '../lib/unindent';
@@ -7,6 +6,8 @@ import * as mysql from 'mysql';
 import {RowDataPacket} from 'mysql2';
 import {OkPacket} from 'mysql2';
 import {FieldPacket} from 'mysql2';
+import {MysqlConfig} from './config/MysqlConfig';
+import {injectableType} from 'inclined-plane';
 
 type ResultSetCallback<T> = (rows: T) => void;
 type ErrorCallback = (err: Error) => void;
@@ -124,53 +125,40 @@ export class QueryImpl<T> {
   }
 }
 
+const mysql2Connection = injectableType<mysql2.Connection>('mysql2.Connection');
+const mysql2ConnectionOptions = injectableType<mysql2.ConnectionOptions>('mysql2.ConnectionOptions');
+
 export abstract class MysqlClient {
 
-  static _config: MysqlConfig;
-  static _connectionOptions: mysql2.ConnectionOptions;
-  static _db: mysql2.Connection;
-
-  private static config(configAccessor: () => { mysql: MysqlConfig } = getConfig): MysqlConfig {
-    if (this._config == null) {
-      this._config = configAccessor().mysql;
-    }
-    return this._config;
-  }
-
-  private static connectionOptions(config: MysqlConfig = this.config()): mysql2.ConnectionOptions {
-    if (this._connectionOptions == null) {
-      this._connectionOptions = {
-        // waitForConnections: true,
-        host: config.host,
-        port: config.port,
-        user: config.username,
-        password: config.password,
-        database: config.schema,
-        // connectionLimit: 4,
-        // queueLimit: 0
-      };
-    }
-    return this._connectionOptions;
-  }
-
-  protected static db(
-    adapter: MysqlAdapter = mysql2,
-    connectionOptions: mysql2.ConnectionOptions = this.connectionOptions(),
-    logger: Logger = env.debug.bind(env)
-  ) {
-    if (this._db == null) {
-      if (logger != null) {
-        logger(() => `Mysql setup`);
-      }
-      this._db = adapter.createConnection(connectionOptions);
-    }
-    return this._db;
-  }
-
   constructor(
-    private readonly _db: mysql2.Connection = MysqlClient.db(),
     private readonly logger: Logger = env.debug.bind(env)
   ) {
+  }
+
+  @mysql2Connection.inject protected _db: mysql2.Connection | undefined;
+
+  @mysql2ConnectionOptions.supplier
+  public static connectionOptions(
+    @MysqlConfig.required config: MysqlConfig
+  ): mysql2.ConnectionOptions {
+    return {
+      // waitForConnections: true,
+      host: config.host,
+      port: config.port,
+      user: config.username,
+      password: config.password,
+      database: config.schema,
+      // connectionLimit: 4,
+      // queueLimit: 0
+    };
+  }
+
+  @mysql2Connection.supplier
+  protected static db(
+    @mysql2ConnectionOptions.required connectionOptions: mysql2.ConnectionOptions,
+    adapter: MysqlAdapter = mysql2,
+  ): mysql2.Connection {
+    return adapter.createConnection(connectionOptions);
   }
 
   public findObject<T>(type: FromObject<T>, sql: string, params: any[] = []): Promise<T | null> {
@@ -205,7 +193,7 @@ export abstract class MysqlClient {
     return query;
   }
 
-  public selectOne(fieldName: string): string {
+  protected selectOne(fieldName: string): string {
     throw new Error(`Override ${this.constructor.name}.selectOne`);
   }
 }
