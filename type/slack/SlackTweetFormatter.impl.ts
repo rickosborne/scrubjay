@@ -4,11 +4,11 @@ import {SlackFormatBuilder} from './SlackFormatBuilder';
 import {TextBlock} from './block/TextBlock';
 import {MarkdownTextBlock} from './block/MarkdownTextBlock';
 import {TweetEntities} from '../twitter/TweetEntities';
-import {fixed, getTimeHHMM} from '../../lib/time';
+import {getLongDateTime} from '../../lib/time';
 import {PostableMessage} from './PostableMessage';
 import {KnownBlockable} from './block/SlackBlock';
 import * as slack from '@slack/client';
-import {DelayedRenderActions, MONTHS, SlackTweetFormatter, TweetRenderingFlags, WEEKDAYS} from './SlackTweetFormatter';
+import {DelayedRenderActions, SlackTweetFormatter, TweetRenderingFlags} from './SlackTweetFormatter';
 import {TweetHashtag} from '../twitter/TweetHashtag';
 import {TweetUrl} from '../twitter/TweetUrl';
 import {TweetMedia} from '../twitter/TweetMedia';
@@ -111,7 +111,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     const fields: TextBlock[] = [];
     const quote = flags.inReplyTo || flags.retweeted || flags.quoted ? '>' : '';
     if (tweet.created != null) {
-      fields.push(new MarkdownTextBlock(`${quote}_Sent: ${this.formatDateTime(tweet.created)}_`));
+      fields.push(new MarkdownTextBlock(`${quote}_Sent: ${getLongDateTime(tweet.created)}_`));
     }
     fields.push(new MarkdownTextBlock(`${quote}_ID: ${tweet.id}_`));
     if (tweet.replyUser != null) {
@@ -160,15 +160,6 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     if (overall >= 0) {
       return overall - left;
     }
-  }
-
-  // noinspection JSMethodCanBeStatic
-  protected formatDateTime(dt: Date): string {
-    const weekday = WEEKDAYS[dt.getDay()];
-    const month = MONTHS[dt.getMonth()];
-    const date = `${fixed(dt.getDate())} ${month} ${dt.getFullYear()}`;
-    const time = getTimeHHMM(dt);
-    return `${weekday}, ${date} at ${time}`;
   }
 
   public linkForChannel(channel: Channel | FeedChannel): string {

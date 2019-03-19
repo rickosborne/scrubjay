@@ -12,6 +12,7 @@ import {TwitterUser} from '../twitter/TwitterUser';
 import env from '../../lib/env';
 import {SlackBot} from './SlackBot';
 import {SlackBotCommand} from './SlackBotCommand';
+import {formatDurationMS, getLongDateTime} from '../../lib/time';
 
 class CommandImpl implements SlackBotCommand {
 
@@ -89,6 +90,16 @@ export class SlackBotImpl implements SlackBot {
   ) {
   }
 
+  protected get startTime(): string {
+    return `${getLongDateTime(this._startTime)}`;
+  }
+
+  public get uptime(): string {
+    const elapsedMS = (new Date()).valueOf() - this._startTime.valueOf();
+    return formatDurationMS(elapsedMS);
+  }
+
+  private readonly _startTime: Date = new Date();
   private readonly commands: SlackBotCommand[] = [];
 
   @SlackBot.supplier
@@ -307,8 +318,11 @@ export class SlackBotImpl implements SlackBot {
         )
       )
     );
+    this.command('uptime', 'Time online since the last restart or upgrade', uptimeCommand => uptimeCommand
+      .reply(() => `It's been ${this.uptime} since ${this.startTime}.`)
+    );
     this.command('about', 'Show version and configuration information', command => {
-      command.reply(`Scrubjay build ${this.config.version || '?'}`);
+      command.reply(`Scrubjay release ${this.config.version || '?'}`);
     });
     this.help('help');
     this.otherwise(message => {

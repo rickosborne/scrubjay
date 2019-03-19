@@ -39,6 +39,9 @@ class TwitterClientImpl implements TwitterClient {
       this.stream.destroy();
     }
     let wait = backoff || 0;
+    if (backoff > 0) {
+      env.debug(() => `Twitter client backoff: ${backoff}`);
+    }
     setTimeout(() => {
       env.debug('Twitter: connect');
       this.twitter.stream('statuses/filter', {
