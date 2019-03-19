@@ -11,6 +11,7 @@ import {FeedStore} from './type/slack/FeedStore';
 import {TwitterUser} from './type/twitter/TwitterUser';
 import {SlackBot} from './type/slack/SlackBot';
 import {TwitterUserStore} from './type/twitter/store/TwitterUserStore';
+import {ScrubjayConfigStore} from './type/config/ScrubjayConfigStore';
 // import * as wtfnode from 'wtfnode';
 
 migrator.onReady(() => {
@@ -19,6 +20,7 @@ migrator.onReady(() => {
   const twitterClient = TwitterClient.getInstance();
   const twitterUserStore = TwitterUserStore.getInstance();
   const feedStore = FeedStore.getInstance();
+  const configStore = ScrubjayConfigStore.getInstance();
 
   tweetStore.follows().then(users => {
     twitterClient.addUsers(...users);
@@ -32,17 +34,19 @@ migrator.onReady(() => {
         }
         feedStore
           .channelsFor(tweet.user)
-          .then(channels => {
-            const messages = slackBot.messagesFromTweet(tweet);
-            env.debug(() => `#${channels.map(c => c.name).join('|#')} ${JSON.stringify(messages)}`);
-            for (const message of messages) {
-              for (const channel of channels) {
-                slackBot
-                  .send(message.with(channel.id))
-                  .catch(reason => env.debug(`Could not forward tweet: ${JSON.stringify(reason)}`));
+          .then(channels => configStore.followEmoji
+            .then(followEmoji => {
+              const messages = slackBot.messagesFromTweet(tweet, {followEmoji});
+              env.debug(() => `#${channels.map(c => c.name).join('|#')} ${JSON.stringify(messages)}`);
+              for (const message of messages) {
+                for (const channel of channels) {
+                  slackBot
+                    .send(message.with(channel.id))
+                    .catch(reason => env.debug(`Could not forward tweet: ${JSON.stringify(reason)}`));
+                }
               }
-            }
-          });
+            })
+          );
       });
     });
     twitterClient.connect();

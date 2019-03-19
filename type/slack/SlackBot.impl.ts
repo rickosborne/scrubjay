@@ -10,9 +10,10 @@ import {Tweet} from '../twitter/Tweet';
 import {PostableMessage} from './PostableMessage';
 import {TwitterUser} from '../twitter/TwitterUser';
 import env from '../../lib/env';
-import {SlackBot} from './SlackBot';
+import {RenderOptions, SlackBot} from './SlackBot';
 import {SlackBotCommand} from './SlackBotCommand';
 import {formatDurationMS, getLongDateTime} from '../../lib/time';
+import {ScrubjayConfigStore} from '../config/ScrubjayConfigStore';
 
 class CommandImpl implements SlackBotCommand {
 
@@ -87,6 +88,7 @@ export class SlackBotImpl implements SlackBot {
     private readonly twitterEventStore: TwitterEventStore,
     private readonly twitterClient: TwitterClient,
     private readonly config: ScrubjayConfig,
+    private readonly configStore: ScrubjayConfigStore,
   ) {
   }
 
@@ -112,10 +114,11 @@ export class SlackBotImpl implements SlackBot {
     @TwitterEventStore.required twitterEventStore: TwitterEventStore,
     @TwitterClient.required twitterClient: TwitterClient,
     @ScrubjayConfig.required config: ScrubjayConfig,
+    @ScrubjayConfigStore.required configStore: ScrubjayConfigStore,
   ): SlackBot {
     const bot = new SlackBotImpl(
       slackClient, slackFeedStore, slackTweetFormatter,
-      twitterUserStore, tweetStore, twitterEventStore, twitterClient, config
+      twitterUserStore, tweetStore, twitterEventStore, twitterClient, config, configStore
     );
     return bot.start();
   }
@@ -161,8 +164,8 @@ export class SlackBotImpl implements SlackBot {
     this.slackClient.replyTo(regexify(key), lines.join('\n'));
   }
 
-  public messagesFromTweet(tweet: Tweet): PostableMessage[] {
-    return this.slackTweetFormatter.messagesFromTweet(tweet);
+  public messagesFromTweet(tweet: Tweet, options: RenderOptions = {}): PostableMessage[] {
+    return this.slackTweetFormatter.messagesFromTweet(tweet, options);
   }
 
   public otherwise(messageSupplier: EventuallyPostable): void {
@@ -177,19 +180,20 @@ export class SlackBotImpl implements SlackBot {
     this.command('ping', 'See if I\'m online.', command => command.reply('pong'));
     this.command('identify', null, command => command
       .param('name', 'Fetch information about a twitterer', param => param
-        .reply((message, actions, name) => this.twitterClient
-          .fetchUser(name)
-          .then((fetched: TwitterUser) => {
-            if (fetched == null) {
-              return `Could not find a Twitter user named \`${this.slackTweetFormatter.slackEscape(name)}\``;
-            }
-            return this.twitterUserStore.merge(fetched).then(merged => {
-              this.twitterClient.addUsers(merged).connect();
-              const linkedName = this.slackTweetFormatter.userLink(fetched.name);
-              const fullName = this.slackTweetFormatter.slackEscape(fetched.fullName);
-              return `Followed ${linkedName} (${fullName}).`;
-            });
-          })
+        .reply((message, actions, name) => this.configStore.followEmoji.then(followerEmoji => this.twitterClient
+            .fetchUser(name)
+            .then((fetched: TwitterUser) => {
+              if (fetched == null) {
+                return `Could not find a Twitter user named \`${this.slackTweetFormatter.slackEscape(name)}\``;
+              }
+              return this.twitterUserStore.merge(fetched).then(merged => {
+                this.twitterClient.addUsers(merged).connect();
+                const linkedName = this.slackTweetFormatter.userLink(fetched.name, followerEmoji);
+                const fullName = this.slackTweetFormatter.slackEscape(fetched.fullName);
+                return `Followed ${linkedName} (${fullName}).`;
+              });
+            })
+          )
         )
       )
     );
@@ -222,16 +226,18 @@ export class SlackBotImpl implements SlackBot {
             )
           )
           .subcommand('follows', 'Show follows published to a channel', subcommand => subcommand
-            .reply((message, actions, channelName) => actions
-              .channel(channelName)
-              .then(channel => this.slackFeedStore.followsFor(channel)
-                .then(users => {
-                  const link = this.slackTweetFormatter.linkForChannel(channel);
-                  if (users == null || users.length === 0) {
-                    return `I don't publish any tweets to ${link}.`;
-                  }
-                  return `I publish tweets for ${users.map(user => this.slackTweetFormatter.userLink(user.name)).join(' ')} to ${link}.`;
-                })
+            .reply((message, actions, channelName) => this.configStore.followEmoji
+              .then(followerEmoji => actions.channel(channelName)
+                .then(channel => this.slackFeedStore.followsFor(channel)
+                  .then(users => {
+                    const link = this.slackTweetFormatter.linkForChannel(channel);
+                    if (users == null || users.length === 0) {
+                      return `I don't publish any tweets to ${link}.`;
+                    }
+                    const userLinks = users.map(user => this.slackTweetFormatter.userLink(user.name, followerEmoji)).join(' ');
+                    return `I publish tweets for ${userLinks} to ${link}.`;
+                  })
+                )
               )
             ))
           .subcommand('follow', null, subcommand => subcommand
@@ -242,28 +248,30 @@ export class SlackBotImpl implements SlackBot {
                   .all(usernames.map(un => this.twitterUserStore.findOneByName(un.replace(/^@/, ''))))
                   .then(users => Promise
                     .all(users.map(u => this.slackFeedStore.follow(channel, u)))
-                    .then(() => this.slackFeedStore
-                      .followsFor(channel)
-                      .then(followed => {
-                        const channelLink = this.slackTweetFormatter.linkForChannel(channel);
-                        const requestedNames = users.map(u => u.name);
-                        const preexistingLinks = followed
-                          .filter(f => requestedNames.indexOf(f.name) < 0)
-                          .map(u => this.slackTweetFormatter.userLink(u.name));
-                        const requestedLinks = users.map(u => this.slackTweetFormatter.userLink(u.name));
-                        const response: string[] = [];
-                        if (requestedLinks.length > 0) {
-                          response.push(`I will publish a feed for ${requestedLinks.join(' ')} to ${channelLink}.`);
-                        } else {
-                          response.push(`I already publish those feeds to ${channelLink}.`);
-                        }
-                        if (preexistingLinks.length === 0) {
-                          response.push('That\'s all I publish to that channel.');
-                        } else {
-                          response.push(`I also publish ${preexistingLinks.join(' ')} to that channel.`);
-                        }
-                        return response.join(' ');
-                      })
+                    .then(() => this.configStore.followEmoji
+                      .then(followerEmoji => this.slackFeedStore
+                        .followsFor(channel)
+                        .then(followed => {
+                          const channelLink = this.slackTweetFormatter.linkForChannel(channel);
+                          const requestedNames = users.map(u => u.name);
+                          const preexistingLinks = followed
+                            .filter(f => requestedNames.indexOf(f.name) < 0)
+                            .map(u => this.slackTweetFormatter.userLink(u.name, followerEmoji));
+                          const requestedLinks = users.map(u => this.slackTweetFormatter.userLink(u.name, followerEmoji));
+                          const response: string[] = [];
+                          if (requestedLinks.length > 0) {
+                            response.push(`I will publish a feed for ${requestedLinks.join(' ')} to ${channelLink}.`);
+                          } else {
+                            response.push(`I already publish those feeds to ${channelLink}.`);
+                          }
+                          if (preexistingLinks.length === 0) {
+                            response.push('That\'s all I publish to that channel.');
+                          } else {
+                            response.push(`I also publish ${preexistingLinks.join(' ')} to that channel.`);
+                          }
+                          return response.join(' ');
+                        })
+                      )
                     )
                   )
                 )
@@ -285,60 +293,86 @@ export class SlackBotImpl implements SlackBot {
       )
     );
     this.command('follows', 'Show the twitterers I\'m following', command => command
-      .reply(() => this.tweetStore.follows()
-        .then(follows => {
-          if (follows == null || follows.length === 0) {
-            return `I'm not currently following anyone.`;
-          }
-          return `I'm following: ${follows.map(user => user.name).map(name => this.slackTweetFormatter.userLink(name)).join(' ')}`;
-        })
+      .reply(() => this.configStore.followEmoji.then(followerEmoji => this.tweetStore
+          .follows()
+          .then(follows => {
+            if (follows == null || follows.length === 0) {
+              return `I'm not currently following anyone.`;
+            }
+            const userLinks = follows.map(user => user.name).map(name => this.slackTweetFormatter.userLink(name, followerEmoji));
+            return `I'm following: ${userLinks.join(' ')}`;
+          })
+        )
       )
     );
     this.command('latest', null, command => command
       .subcommand('tweet', 'Show the latest tweet I\'ve tracked (no RTs or replies)', latestTweet => latestTweet
-        .reply(() => this.twitterEventStore.latest().then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet)))
+        .reply(() => this.configStore.followEmoji
+          .then(followEmoji => this.twitterEventStore
+            .latest()
+            .then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet, {followEmoji}))
+          )
+        )
       )
       .subcommand('retweet', 'Show the latest tweet I\'ve tracked (with RTs)', latestTweet => latestTweet
-        .reply(() => this.twitterEventStore.latest(true).then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet)))
+        .reply(() => this.configStore.followEmoji
+          .then(followEmoji => this.twitterEventStore
+            .latest(true)
+            .then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet, {followEmoji}))
+          )
+        )
       )
       .subcommand('reply', 'Show the latest tweet I\'ve tracked (with replies)', latestTweet => latestTweet
-        .reply(() => this.twitterEventStore.latest(false, true).then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet)))
+        .reply(() => this.configStore.followEmoji
+          .then(followEmoji => this.twitterEventStore
+            .latest(false, true)
+            .then(tweet => this.slackTweetFormatter.messagesFromTweet(tweet, {followEmoji}))
+          )
+        )
       )
       .param('username', 'Show the latest tweet from $username', param => param
-        .reply((message, actions, username) => this.twitterEventStore
-          .latestFor(username).then(tweet => {
-            if (tweet == null) {
-              actions.reply(PostableMessage.from(`I have not seen anything from @${username}`, message.channel))
-                .catch(reason => env.debug(`Could not reply: ${JSON.stringify(reason)}`));
-              return null;
-            }
-            return this.messagesFromTweet(tweet);
-          })
+        .reply((message, actions, username) => this.configStore.followEmoji
+          .then(followEmoji => this.twitterEventStore
+            .latestFor(username)
+            .then(tweet => {
+              if (tweet == null) {
+                const msg = `I have not seen anything from ${this.slackTweetFormatter.userLink(username, followEmoji)}`;
+                actions
+                  .reply(PostableMessage.from(msg, message.channel))
+                  .catch(reason => env.debug(`Could not reply: ${JSON.stringify(reason)}`));
+                return null;
+              }
+              return this.messagesFromTweet(tweet, {followEmoji});
+            })
+          )
         )
       )
     );
     this.command('tweet', null, onTweet => onTweet
       .param('statusId', 'Show a specific tweet', statusIdParam => statusIdParam
-        .reply((message, actions, statusId) => this.twitterEventStore
-          .findById(statusId).then(tweet => {
-            if (tweet == null) {
-              return `I don't have a record of that tweet.`;
-            }
-            return this.messagesFromTweet(tweet);
-          })
+        .reply((message, actions, statusId) => this.configStore.followEmoji.then(followEmoji => this.twitterEventStore
+            .findById(statusId).then(tweet => {
+              if (tweet == null) {
+                return `I don't have a record of that tweet.`;
+              }
+              return this.messagesFromTweet(tweet, {followEmoji});
+            })
+          )
         )
       )
     );
     this.command('summary', 'Show all known channels and follows', summaryCommand => summaryCommand
-      .reply(() => this.slackFeedStore
-        .channelsAndFollows()
-        .then(summaries => `I am publishing these feeds:\n` + summaries
-          .map(summary => {
-            const channelLink = this.slackTweetFormatter.linkForChannel(summary.channel);
-            const userLinks = summary.followNames.map(name => this.slackTweetFormatter.userLink(name)).join(' ');
-            return `${channelLink}: ${userLinks}`;
-          })
-          .join('\n')
+      .reply(() => this.configStore.followEmoji
+        .then(followerEmoji => this.slackFeedStore
+          .channelsAndFollows()
+          .then(summaries => `I am publishing these feeds:\n` + summaries
+            .map(summary => {
+              const channelLink = this.slackTweetFormatter.linkForChannel(summary.channel);
+              const userLinks = summary.followNames.map(name => this.slackTweetFormatter.userLink(name, followerEmoji)).join(' ');
+              return `${channelLink}: ${userLinks}`;
+            })
+            .join('\n')
+          )
         )
       )
     );

@@ -1,6 +1,7 @@
 import 'inclined-plane';
 import './MysqlClient';
 import './config/ScrubjayConfig.impl';
+import './config/ScrubjayConfigStore.impl';
 import './slack/FeedStore.impl';
 import './slack/SlackBot.impl';
 import './slack/SlackClient.impl';
