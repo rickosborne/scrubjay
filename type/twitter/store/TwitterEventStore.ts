@@ -1,6 +1,12 @@
 import {Tweet} from '../Tweet';
 import {injectableType} from 'inclined-plane';
 
+export interface TweetJSON {
+  [key: string]: {
+    [key: string]: string;
+  };
+}
+
 export interface TwitterEventStore {
   findById(statusId: string): Promise<Tweet | null>;
 
@@ -8,7 +14,7 @@ export interface TwitterEventStore {
 
   latestFor(username: string): Promise<Tweet>;
 
-  save(event: { [key: string]: { [key: string]: string } }): void;
+  save(event: TweetJSON): void;
 }
 
 export const TwitterEventStore = injectableType<TwitterEventStore>('TwitterEventStore');

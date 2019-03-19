@@ -1,4 +1,4 @@
-import {TwitterEventStore} from './store/TwitterEventStore';
+import {TweetJSON, TwitterEventStore} from './store/TwitterEventStore';
 import {TweetStore} from './store/TweetStore';
 import * as Twitter from 'twitter';
 import {TwitterUser} from './TwitterUser';
@@ -91,5 +91,18 @@ class TwitterClientImpl implements TwitterClient {
 
   public onTweet(callback: TweetCallback) {
     this.tweetCallbacks.push(callback);
+  }
+
+  public recent(user: TwitterUser, count: number = 20): Promise<[Tweet, TweetJSON][]> {
+    return this.twitter
+      .get('statuses/user_timeline', {
+        screen_name: user.name,
+        count: count
+      })
+      .then(response => Array.isArray(response) ? response.map(item => {
+        // noinspection UnnecessaryLocalVariableJS
+        const pair: [Tweet, TweetJSON] = [Tweet.fromObject(item), <TweetJSON>item];
+        return pair;
+      }) : []);
   }
 }

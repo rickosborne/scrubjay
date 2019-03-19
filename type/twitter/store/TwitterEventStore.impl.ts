@@ -1,6 +1,7 @@
 import {MysqlClient} from '../../MysqlClient';
 import {Tweet} from '../Tweet';
-import {TwitterEventStore} from './TwitterEventStore';
+import {TweetJSON, TwitterEventStore} from './TwitterEventStore';
+import env from '../../../lib/env';
 
 @TwitterEventStore.provider
 class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
@@ -39,13 +40,39 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
     `, username.replace(/^@/, ''));
   }
 
-  save(event: { [key: string]: { [key: string]: string } } = null) {
+  save(event: TweetJSON = null): void {
     const username = event != null && event['user'] != null ? event['user']['screen_name'] : null;
     if (event != null) {
-      this.query<void>(`
-        INSERT INTO twitter_event (username, data)
-        VALUES (?, ?)
-      `, [username, JSON.stringify(event)]);
+      const where: string[] = [];
+      const params: any[] = [];
+      if (event.id_str != null) {
+        where.push(`(JSON_EXTRACT(data, '$.id_str') = ?)`);
+        params.push(String(event.id_str));
+      }
+      if (event.id != null) {
+        where.push(`(JSON_EXTRACT(data, '$.id') = ?)`);
+        params.push(parseInt(String(event.id), 10));
+      }
+      if (where.length === 0) {
+        env.debug(() => `TwitterEventStore.save cannot save tweet without ID: ${env.readable(event)}`);
+        return;
+      }
+      this
+        .query<{ id: number }[]>(`
+          SELECT id
+          FROM twitter_event
+          WHERE ${where.join(' OR ')}
+        `, params)
+        .onResults(rows => {
+          if (rows == null || rows.length === 0) {
+            this.query<void>(`
+              INSERT IGNORE INTO twitter_event (username, data)
+              VALUES (?, ?)
+            `, [username, JSON.stringify(event)]);
+          } else {
+            env.debug(() => `Already have a version of tweet: ${rows[0].id}`);
+          }
+        });
     }
   }
 }

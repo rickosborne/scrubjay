@@ -1,6 +1,7 @@
 import {Tweet} from './Tweet';
 import {TwitterUser} from './TwitterUser';
 import {injectableType} from 'inclined-plane';
+import {TweetJSON} from './store/TwitterEventStore';
 
 export type TweetCallback = (tweet: Tweet) => void;
 
@@ -13,6 +14,8 @@ export interface TwitterClient {
   fetchUser(name: string): Promise<TwitterUser>;
 
   onTweet(callback: TweetCallback): void;
+
+  recent(user: TwitterUser, count?: number): Promise<[Tweet, TweetJSON][]>;
 }
 
 export const TwitterClient = injectableType<TwitterClient>('TwitterClient');

@@ -14,6 +14,7 @@ import {RenderOptions, SlackBot} from './SlackBot';
 import {SlackBotCommand} from './SlackBotCommand';
 import {formatDurationMS, getLongDateTime} from '../../lib/time';
 import {ScrubjayConfigStore} from '../config/ScrubjayConfigStore';
+import {plural} from '../../lib/plural';
 
 class CommandImpl implements SlackBotCommand {
 
@@ -344,6 +345,36 @@ export class SlackBotImpl implements SlackBot {
               }
               return this.messagesFromTweet(tweet, {followEmoji});
             })
+          )
+        )
+      )
+    );
+    this.command('backfill', null, backfillCommand => backfillCommand
+      .param('username', 'Fetch recent tweets for the user', usernameParam => usernameParam
+        .reply((message, actions, username) => this.twitterUserStore.findOneByName(username)
+          .then(user => {
+              if (user == null) {
+                return `I am not following anyone named \`${this.slackTweetFormatter.slackEscape(username)}\`.`;
+              }
+              return this.configStore.followEmoji
+                .then(followEmoji => this.twitterClient
+                  .recent(user)
+                  .then(tweets => {
+                    const count = tweets.length;
+                    const didSaveTweet: Promise<boolean>[] = [];
+                    tweets.forEach(([tweet, json]) => {
+                      didSaveTweet.push(this.tweetStore.store(tweet));
+                      this.twitterEventStore.save(json);
+                    });
+                    return Promise.all(didSaveTweet)
+                      .then(([...saved]) => {
+                        const didSave = saved.filter(v => v).length;
+                        const userLink = this.slackTweetFormatter.userLink(username, followEmoji);
+                        return `Backfilled ${count} tweet${plural(count)}, ${didSave} new, for ${userLink}.`;
+                      });
+                  })
+                );
+            }
           )
         )
       )

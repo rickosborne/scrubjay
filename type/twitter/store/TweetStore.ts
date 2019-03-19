@@ -8,7 +8,7 @@ export interface TweetStore {
 
   recentForIdentity(ident: Identity, count: number): Promise<Tweet[]>;
 
-  store(tweet: Tweet): void;
+  store(tweet: Tweet): Promise<boolean>;
 }
 
 export const TweetStore = injectableType<TweetStore>('TweetStore');

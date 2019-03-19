@@ -240,7 +240,8 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
   }
 
   public userLink(name: string, emoji?: string): string {
+    const n = name.replace(/^@/, '');
     const followerEmoji = emoji || FOLLOW_EMOJI_DEFAULT;
-    return `<${this.twitterUrl(name)}|:${followerEmoji}:${name}>`;
+    return `<${this.twitterUrl(n)}|:${followerEmoji}:${n}>`;
   }
 }
