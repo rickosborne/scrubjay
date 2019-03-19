@@ -15,6 +15,7 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
       SELECT data
       FROM twitter_event
       WHERE ${where}
+      ORDER BY created DESC
     `, params).promise.then(rows => rows == null || rows.length < 1 ? null : Tweet.fromObject(rows[0].data));
   }
 
