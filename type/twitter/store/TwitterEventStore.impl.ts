@@ -1,5 +1,5 @@
-import {MysqlClient} from '../MysqlClient';
-import {Tweet} from './Tweet';
+import {MysqlClient} from '../../MysqlClient';
+import {Tweet} from '../Tweet';
 import {TwitterEventStore} from './TwitterEventStore';
 
 @TwitterEventStore.provider

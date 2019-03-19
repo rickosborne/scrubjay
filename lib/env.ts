@@ -34,6 +34,21 @@ export class Env {
     return this._debug;
   }
 
+  // noinspection JSUnusedGlobalSymbols
+  public booleanDefaultFalse(): (s: string) => boolean {
+    return s => {
+      const val = String(s || '').toLowerCase();
+      return val !== '1' && val !== 'true' && val !== 't' && val !== 'yes' && val !== 'y';
+    };
+  }
+
+  public booleanDefaultTrue(): (s: string) => boolean {
+    return s => {
+      const val = String(s || '').toLowerCase();
+      return val !== '0' && val !== 'false' && val !== 'f' && val !== 'n' && val !== 'no';
+    };
+  }
+
   public debug(callback: string | AnySupplier, err: any = null) {
     if (this._debug) {
       const message = typeof callback === 'function' ? callback() : callback;

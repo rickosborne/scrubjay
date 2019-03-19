@@ -8,8 +8,15 @@ export interface FeedChannel {
   readonly name: string;
 }
 
+export interface ChannelAndFollowSummary {
+  readonly channel: FeedChannel;
+  readonly followNames: string[];
+}
+
 export interface FeedStore {
   readonly channels: Promise<FeedChannel[]>;
+
+  channelsAndFollows(): Promise<ChannelAndFollowSummary[]>;
 
   channelsFor(user: TwitterUser): Promise<FeedChannel[]>;
 

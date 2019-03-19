@@ -1,5 +1,5 @@
-import {InsertResults, MysqlClient, Query} from '../MysqlClient';
-import {TwitterUser} from './TwitterUser';
+import {InsertResults, MysqlClient, Query} from '../../MysqlClient';
+import {TwitterUser} from '../TwitterUser';
 import {TwitterUserStore} from './TwitterUserStore';
 
 @TwitterUserStore.provider

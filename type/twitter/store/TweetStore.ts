@@ -1,6 +1,6 @@
-import {Tweet} from './Tweet';
-import {Identity} from '../Identity';
-import {TwitterUser} from './TwitterUser';
+import {Tweet} from '../Tweet';
+import {Identity} from '../../Identity';
+import {TwitterUser} from '../TwitterUser';
 import {injectableType} from 'inclined-plane';
 
 export interface TweetStore {

@@ -1,4 +1,4 @@
-import {TwitterUser} from './TwitterUser';
+import {TwitterUser} from '../TwitterUser';
 import {injectableType} from 'inclined-plane';
 
 export interface TwitterUserStore {

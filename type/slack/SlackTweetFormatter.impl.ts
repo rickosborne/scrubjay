@@ -237,6 +237,6 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
   }
 
   public userLink(name: string): string {
-    return `<${this.twitterUrl(name)}|@${name}>`;
+    return `<${this.twitterUrl(name)}|:bird:${name}>`;
   }
 }

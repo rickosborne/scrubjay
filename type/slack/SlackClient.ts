@@ -35,6 +35,8 @@ export interface SlackClient {
 
   send(...messages: PostableMessage[]): Promise<void>;
 
+  setTopic(channel: Channel, topic: string): Promise<boolean>;
+
   start(): Promise<void>;
 }
 

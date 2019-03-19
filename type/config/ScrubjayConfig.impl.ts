@@ -57,6 +57,11 @@ export class TwitterConfigImpl implements TwitterConfig {
       consumer_secret: this.consumerSecret
     };
   }
+
+  // noinspection JSMethodCanBeStatic
+  public get connectStream(): boolean {
+    return env.param('TWITTER_STREAM', true, env.booleanDefaultTrue());
+  }
 }
 
 class MysqlConfigImpl implements MysqlConfig {

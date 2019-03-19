@@ -6,11 +6,11 @@ import './type/services';
 env.debug(() => `scrubjay`);
 import {migrator} from './lib/schema';
 import {TwitterClient} from './type/twitter/TwitterClient';
-import {TweetStore} from './type/twitter/TweetStore';
+import {TweetStore} from './type/twitter/store/TweetStore';
 import {FeedStore} from './type/slack/FeedStore';
 import {TwitterUser} from './type/twitter/TwitterUser';
 import {SlackBot} from './type/slack/SlackBot';
-import {TwitterUserStore} from './type/twitter/TwitterUserStore';
+import {TwitterUserStore} from './type/twitter/store/TwitterUserStore';
 // import * as wtfnode from 'wtfnode';
 
 migrator.onReady(() => {

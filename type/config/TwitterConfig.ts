@@ -6,6 +6,7 @@ export type TwitterCredentials = Twitter.AccessTokenOptions | Twitter.BearerToke
 export interface TwitterConfig {
   readonly accessTokenKey: string;
   readonly accessTokenSecret: string;
+  readonly connectStream: boolean;
   readonly consumerKey: string;
   readonly consumerSecret: string;
   readonly credentials: TwitterCredentials;

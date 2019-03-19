@@ -1,7 +1,7 @@
-import {Tweet} from './Tweet';
-import {MysqlClient} from '../MysqlClient';
-import {Identity} from '../Identity';
-import {TwitterUser} from './TwitterUser';
+import {Tweet} from '../Tweet';
+import {MysqlClient} from '../../MysqlClient';
+import {Identity} from '../../Identity';
+import {TwitterUser} from '../TwitterUser';
 import {TweetStore} from './TweetStore';
 
 @TweetStore.provider

@@ -1,9 +1,9 @@
 import {CommandSummary, EventuallyPostable, SlackClient} from './SlackClient';
 import {FeedStore} from './FeedStore';
 import {SlackTweetFormatter} from './SlackTweetFormatter';
-import {TwitterUserStore} from '../twitter/TwitterUserStore';
-import {TweetStore} from '../twitter/TweetStore';
-import {TwitterEventStore} from '../twitter/TwitterEventStore';
+import {TwitterUserStore} from '../twitter/store/TwitterUserStore';
+import {TweetStore} from '../twitter/store/TweetStore';
+import {TwitterEventStore} from '../twitter/store/TwitterEventStore';
 import {TwitterClient} from '../twitter/TwitterClient';
 import {ScrubjayConfig} from '../config/ScrubjayConfig';
 import {Tweet} from '../twitter/Tweet';
@@ -185,8 +185,8 @@ export class SlackBotImpl implements SlackBot {
             }
             return this.twitterUserStore.merge(fetched).then(merged => {
               this.twitterClient.addUsers(merged).connect();
-              const linkedName = this.slackTweetFormatter.userLink(merged.name);
-              const fullName = this.slackTweetFormatter.slackEscape(merged.fullName);
+              const linkedName = this.slackTweetFormatter.userLink(fetched.name);
+              const fullName = this.slackTweetFormatter.slackEscape(fetched.fullName);
               return `Followed ${linkedName} (${fullName}).`;
             });
           })
@@ -204,73 +204,84 @@ export class SlackBotImpl implements SlackBot {
     );
     this.command('channel', null, command => command
       .param('name', null, channelParam => channelParam
-        .subcommand('create', 'Create a feed for a channel.', subcommand => subcommand
-          .reply((message, actions, channelName) => actions
-            .channel(channelName)
-            .then(channel => {
-              if (channel == null) {
-                return `That's not a channel or I don't have access to it.`;
-              }
-              return this.slackFeedStore
-                .createFeed(channel)
-                .then(feed => `I will publish a feed to ${this.slackTweetFormatter.linkForChannel(feed)}`);
-            })
-            .catch(reason => {
-              env.debug(`Could not resolve channel ${channelName}: ${JSON.stringify(reason)}`);
-              return `Could not resolve channel ${channelName}`;
-            })
-          )
-        )
-        .subcommand('follows', 'Show follows published to a channel', subcommand => subcommand
-          .reply((message, actions, channelName) => actions
-            .channel(channelName)
-            .then(channel => this.slackFeedStore.followsFor(channel)
-              .then(users => {
-                const link = this.slackTweetFormatter.linkForChannel(channel);
-                if (users == null || users.length === 0) {
-                  return `I don't publish any tweets to ${link}.`;
+          .subcommand('create', 'Create a feed for a channel.', subcommand => subcommand
+            .reply((message, actions, channelName) => actions
+              .channel(channelName)
+              .then(channel => {
+                if (channel == null) {
+                  return `That's not a channel or I don't have access to it.`;
                 }
-                return `I publish tweets for ${users.map(user => this.slackTweetFormatter.userLink(user.name)).join(' ')} to ${link}.`;
+                return this.slackFeedStore
+                  .createFeed(channel)
+                  .then(feed => `I will publish a feed to ${this.slackTweetFormatter.linkForChannel(feed)}`);
+              })
+              .catch(reason => {
+                env.debug(`Could not resolve channel ${channelName}: ${JSON.stringify(reason)}`);
+                return `Could not resolve channel ${channelName}`;
               })
             )
-          ))
-        .subcommand('follow', null, subcommand => subcommand
-          .rest('Publish tweets from $username on channel $name', nameParam => nameParam
-            .reply((message, actions, channelName, ...usernames) => actions
-              .channel(channelName.replace(/^#/, ''))
-              .then(channel => Promise
-                .all(usernames.map(un => this.twitterUserStore.findOneByName(un.replace(/^@/, ''))))
-                .then(users => Promise
-                  .all(users.map(u => this.slackFeedStore.follow(channel, u)))
-                  .then(() => this.slackFeedStore
-                    .followsFor(channel)
-                    .then(followed => {
-                      const channelLink = this.slackTweetFormatter.linkForChannel(channel);
-                      const requestedNames = users.map(u => u.name);
-                      const preexistingLinks = followed
-                        .filter(f => requestedNames.indexOf(f.name) < 0)
-                        .map(u => this.slackTweetFormatter.userLink(u.name));
-                      const requestedLinks = users.map(u => this.slackTweetFormatter.userLink(u.name));
-                      const response: string[] = [];
-                      if (requestedLinks.length > 0) {
-                        response.push(`I will publish a feed for ${requestedLinks.join(' ')} to ${channelLink}.`);
-                      } else {
-                        response.push(`I already publish those feeds to ${channelLink}.`);
-                      }
-                      if (preexistingLinks.length === 0) {
-                        response.push('That\'s all I publish to that channel.');
-                      } else {
-                        response.push(`I also publish ${preexistingLinks.join(' ')} to that channel.`);
-                      }
-                      return response.join(' ');
-                    })
+          )
+          .subcommand('follows', 'Show follows published to a channel', subcommand => subcommand
+            .reply((message, actions, channelName) => actions
+              .channel(channelName)
+              .then(channel => this.slackFeedStore.followsFor(channel)
+                .then(users => {
+                  const link = this.slackTweetFormatter.linkForChannel(channel);
+                  if (users == null || users.length === 0) {
+                    return `I don't publish any tweets to ${link}.`;
+                  }
+                  return `I publish tweets for ${users.map(user => this.slackTweetFormatter.userLink(user.name)).join(' ')} to ${link}.`;
+                })
+              )
+            ))
+          .subcommand('follow', null, subcommand => subcommand
+            .rest('Publish tweets from $username on channel $name', nameParam => nameParam
+              .reply((message, actions, channelName, ...usernames) => actions
+                .channel(channelName)
+                .then(channel => Promise
+                  .all(usernames.map(un => this.twitterUserStore.findOneByName(un.replace(/^@/, ''))))
+                  .then(users => Promise
+                    .all(users.map(u => this.slackFeedStore.follow(channel, u)))
+                    .then(() => this.slackFeedStore
+                      .followsFor(channel)
+                      .then(followed => {
+                        const channelLink = this.slackTweetFormatter.linkForChannel(channel);
+                        const requestedNames = users.map(u => u.name);
+                        const preexistingLinks = followed
+                          .filter(f => requestedNames.indexOf(f.name) < 0)
+                          .map(u => this.slackTweetFormatter.userLink(u.name));
+                        const requestedLinks = users.map(u => this.slackTweetFormatter.userLink(u.name));
+                        const response: string[] = [];
+                        if (requestedLinks.length > 0) {
+                          response.push(`I will publish a feed for ${requestedLinks.join(' ')} to ${channelLink}.`);
+                        } else {
+                          response.push(`I already publish those feeds to ${channelLink}.`);
+                        }
+                        if (preexistingLinks.length === 0) {
+                          response.push('That\'s all I publish to that channel.');
+                        } else {
+                          response.push(`I also publish ${preexistingLinks.join(' ')} to that channel.`);
+                        }
+                        return response.join(' ');
+                      })
+                    )
                   )
                 )
+                .catch(reason => `Could not follow ${usernames.join(' ')} on ${channelName}: ${JSON.stringify(reason)}`)
               )
-              .catch(reason => `Could not follow ${usernames.join(' ')} on ${channelName}: ${JSON.stringify(reason)}`)
             )
           )
-        )
+        // // This is currently limited to users, not bots
+        // .subcommand('sync', 'Update the topic of the channel with the follow list', syncCommand => syncCommand
+        //   .reply((message, actions, channelName) => actions
+        //     .channel(channelName)
+        //     .then(channel => this.slackFeedStore.followsFor(channel)
+        //       .then(users => this.slackClient.setTopic(channel, users.map(user => user.name).join(' ')))
+        //       .then(success => `Topic in ${this.slackTweetFormatter.linkForChannel(channel)} `
+        //         + (success ? 'updated.' : 'could not be updated.'))
+        //     )
+        //   )
+        // )
       )
     );
     this.command('follows', 'Show the twitterers I\'m following', command => command
@@ -315,6 +326,19 @@ export class SlackBotImpl implements SlackBot {
             }
             return this.messagesFromTweet(tweet);
           })
+        )
+      )
+    );
+    this.command('summary', 'Show all known channels and follows', summaryCommand => summaryCommand
+      .reply(() => this.slackFeedStore
+        .channelsAndFollows()
+        .then(summaries => `I am publishing these feeds:\n` + summaries
+          .map(summary => {
+            const channelLink = this.slackTweetFormatter.linkForChannel(summary.channel);
+            const userLinks = summary.followNames.map(name => this.slackTweetFormatter.userLink(name)).join(' ');
+            return `${channelLink}: ${userLinks}`;
+          })
+          .join('\n')
         )
       )
     );

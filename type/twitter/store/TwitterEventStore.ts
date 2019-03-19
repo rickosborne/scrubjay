@@ -1,4 +1,4 @@
-import {Tweet} from './Tweet';
+import {Tweet} from '../Tweet';
 import {injectableType} from 'inclined-plane';
 
 export interface TwitterEventStore {
