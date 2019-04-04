@@ -424,7 +424,15 @@ export class SlackBotImpl implements SlackBot {
     });
     this.slackClient
       .start()
-      .then(() => env.debug(`Slack client online`));
+      .then(() => {
+        env.debug(`Slack client online`);
+        this.configStore.notifyOnConnect.then((notify) => {
+          if (notify != null && notify.length > 0) {
+            this.send(PostableMessage.from(`Scrubjay \`${this.config.version}\` online.`, notify))
+              .catch(env.debugFailure('Could not notify of online status'));
+          }
+        });
+      });
     return this;
   }
 

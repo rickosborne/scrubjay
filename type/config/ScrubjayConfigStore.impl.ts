@@ -8,6 +8,10 @@ export class ScrubjayConfigStoreImpl extends MysqlClient implements ScrubjayConf
     return this.valueForKey('follower_emoji', FOLLOW_EMOJI_DEFAULT);
   }
 
+  public get notifyOnConnect(): Promise<string | null> {
+    return this.valueForKey('notify_on_connect');
+  }
+
   protected valueForKey(key: string, defaultValue: string = null): Promise<string | null> {
     return this.query<string[]>(`
       SELECT \`value\`

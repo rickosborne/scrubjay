@@ -123,7 +123,7 @@ class SlackClientImpl implements SlackClient {
     return maybeChain == null ? Promise.resolve() : maybeChain;
   }
 
-  setTopic(channel: Channel, topic: string): Promise<boolean> {
+  public setTopic(channel: Channel, topic: string): Promise<boolean> {
     return this.web.channels
       .setTopic({
         channel: channel.id,
