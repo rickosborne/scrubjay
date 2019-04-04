@@ -68,7 +68,8 @@ class SlackClientImpl implements SlackClient {
 
   public onMessageMatch(regex: RegExp, callback: OnSlackMessage): this {
     this.onMessage(message => {
-      const matches = regex.exec(trim(message.text));
+      const unlinked = this.unlink(message.text);
+      const matches = regex.exec(unlinked);
       if (matches != null) {
         const groups = matches.slice(1);
         callback(message, this.messageActions(message), ...groups);
@@ -94,7 +95,6 @@ class SlackClientImpl implements SlackClient {
     return this;
   }
 
-  // noinspection JSMethodCanBeStatic
   private resolve<T>(s: Eventually<T>, message: DirectMessage, ...args: string[]): Promise<T | null> {
     let result: Eventually<T> = s;
     do {
@@ -166,5 +166,13 @@ class SlackClientImpl implements SlackClient {
       return eventually.map(e => e.with(channel, ts));
     }
     return [];
+  }
+
+  // noinspection JSMethodCanBeStatic
+  private unlink(original: string): string {
+    return trim(original)
+      .replace(/<#\w+\|(.+?)>/g, '$1')
+      .replace(/<(@\w+)>/g, '$1')
+      ;
   }
 }

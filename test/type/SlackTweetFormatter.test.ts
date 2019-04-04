@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import {describe, it, beforeEach} from 'mocha';
-import {DelayedRenderActions, FOLLOW_EMOJI_DEFAULT, SlackTweetFormatter, TweetRenderingFlags} from '../../type/slack/SlackTweetFormatter';
+import {DelayedRenderActions, SlackTweetFormatter, TweetRenderingFlags} from '../../type/slack/SlackTweetFormatter';
 import {Chunk, SlackTweetFormatterImpl} from '../../type/slack/SlackTweetFormatter.impl';
 import {tweetQuotedWithEmojisJson} from '../fixture/tweetQuotedWithEmojis';
 import {tweetWithVideoJson} from '../fixture/tweetWithVideo';
@@ -25,15 +25,6 @@ describe('SlackTweetFormatter', () => {
 
   const addedMessages: PostableMessage[] = [];
   const addedBlocks: KnownBlockable[] = [];
-
-  const noopActions: DelayedRenderActions = {
-    addMessage(message: PostableMessage): void {
-      addedMessages.push(message);
-    },
-    addBlock(block: KnownBlockable): void {
-      addedBlocks.push(block);
-    }
-  };
 
   function textsFromMessages(messages: PostableMessage[]): string[] {
     const texts: string[] = [];
@@ -94,7 +85,7 @@ describe('SlackTweetFormatter', () => {
     it('handles embedded pics', () => {
       const formatter = new TestableSlackTweetFormatter();
       const messages: string[] = formatter.messagesFromTweet(tweetQuotedWithEmojis).map(message => message.text);
-      expect(messages[0]).equals(`:${FOLLOW_EMOJI_DEFAULT}:Marisha_Ray:\n?`);
+      expect(messages[0]).equals(`@Marisha_Ray: ?`);
       expect(messages[1]).equals('<https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg>');
       expect(messages[2]).equals('<https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg>');
     });

@@ -170,10 +170,10 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
   }
 
   protected markdownFromTweet(tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions): string {
-    const attribution = `*${this.userLink(tweet.user.name, flags.followEmoji)}* (${tweet.user.fullName})`;
+    const attribution = `*${this.userLink(tweet.user.name, flags.followEmoji)}* (${this.slackEscape(tweet.user.fullName)})`;
     const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
     const retweeted = tweet.retweeted == null ? ''
-      : ` retweeted ${this.userLink(tweet.retweeted.user.name, flags.followEmoji)} (${tweet.retweeted.user.fullName})`;
+      : ` retweeted ${this.userLink(tweet.retweeted.user.name, flags.followEmoji)} (${this.slackEscape(tweet.retweeted.user.fullName)})`;
     const lines = [`${explanation}${attribution}${retweeted}:`];
     const originalText: string = tweet.longText;
     const sparseChunks = this.chunksForEntities(tweet.longTextEntities, flags, later);
@@ -197,7 +197,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     }
     builder.blocks.push(...lateBlocks);
     const message = PostableMessage.from(builder.blocks.map(b => <slack.KnownBlock>b.block))
-      .withText(`:${options.followEmoji || FOLLOW_EMOJI_DEFAULT}:${tweet.user.name}:\n${this.slackEscape(tweet.text)}`);
+      .withText(`@${tweet.user.name}: ${tweet.longText}`);
     messages.unshift(message);
     return messages;
   }
@@ -230,7 +230,8 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/([\\_*~`])/g, '\\$1')
+      // https://webapps.stackexchange.com/questions/86557/how-do-i-escape-formatting-characters-in-slack
+      .replace(/([\\_*~`])/g, '\u00ad$1')
       ;
   }
 
