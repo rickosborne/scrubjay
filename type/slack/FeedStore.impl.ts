@@ -5,6 +5,12 @@ import {ChannelAndFollowSummary, FeedChannel, FeedStore} from './FeedStore';
 import {buildFromObject} from '../FromObject';
 import {SlackId} from './RTEvent';
 
+export interface ChannelAndFollowRow {
+  channel_id: string;
+  channel_name: string;
+  twitter_username: string;
+}
+
 class FeedChannelImpl implements FeedChannel {
   public static fromObject(object: {}): FeedChannelImpl {
     return buildFromObject(FeedChannelImpl, object)
@@ -32,14 +38,14 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
 
   public channelsAndFollows(): Promise<ChannelAndFollowSummary[]> {
     return this
-      .query<{ channel_id: string; channel_name: string; twitter_username: string }[]>(`
+      .query<void>(`
         SELECT sf.channel_id, sf.channel_name, sft.twitter_username
         FROM slack_feed AS sf
                INNER JOIN slack_feed_twitter AS sft ON (sft.slack_channel_id = sf.channel_id)
         ORDER BY sf.channel_name, sft.twitter_username
       `)
-      .promise
-      .then(rows => {
+      .fetch<ChannelAndFollowRow[]>()
+      .then((rows) => {
         if (rows == null || rows.length < 1) {
           return [];
         }
@@ -77,29 +83,27 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
   public createFeed(channel: Channel): Promise<FeedChannel | null> {
     return new Promise((resolve, reject) => {
       this
-        .query<void>(`
+        .query<[string, string]>(`
           INSERT IGNORE INTO slack_feed (channel_id, channel_name)
           VALUES (?, ?)
         `, [channel.id, channel.name])
-        .onResults(() => {
+        .execute()
+        .then(() => {
           resolve(new FeedChannelImpl(channel.id, channel.name));
         })
-        .onError(reason => reject(reason));
+        .catch(reason => reject(reason));
     });
   }
 
   public follow(channel: Channel, user: TwitterUser): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      this
-        .query<void>(`
-          INSERT IGNORE INTO slack_feed_twitter (slack_channel_id, twitter_username)
-          VALUES (?, ?)
-        `, [channel.id, user.name])
-        .onResults(() => {
-          resolve(true);
-        })
-        .onError(reason => reject(reason));
-    });
+    return this
+      .query<[string, string]>(`
+        INSERT IGNORE INTO slack_feed_twitter (slack_channel_id, twitter_username)
+        VALUES (?, ?)
+      `, [channel.id, user.name])
+      .execute()
+      .then(() => true)
+      ;
   }
 
   public followsFor(channel: FeedChannel | Channel): Promise<TwitterUser[]> {

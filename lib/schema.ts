@@ -8,15 +8,16 @@ class Schema extends MysqlClient {
   private _onReady: OnSchemaReady[] = [];
   private ready = false;
 
-  public migrate() {
-    this.query<void>(`
+  public async migrate(): Promise<void> {
+    await this.query<void>(`
       CREATE TABLE IF NOT EXISTS ident (
         id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(40) NOT NULL,
         slug VARCHAR(40) NOT NULL
       )
       ;
-    `).thenQuery<void>(`
+    `).execute();
+    await this.query<void>(`
       CREATE TABLE IF NOT EXISTS twitter_follow (
         id VARCHAR(40),
         username VARCHAR(40) NOT NULL PRIMARY KEY,
@@ -29,7 +30,8 @@ class Schema extends MysqlClient {
         CONSTRAINT fk_twitter_follow_ident FOREIGN KEY (ident_id) REFERENCES ident(id)
       )
       ;
-    `).thenQuery<void>(`
+    `).execute();
+    await this.query<void>(`
       CREATE TABLE IF NOT EXISTS tweet (
         id VARCHAR(40) NOT NULL PRIMARY KEY,
         username VARCHAR(40) NOT NULL,
@@ -39,7 +41,8 @@ class Schema extends MysqlClient {
         CONSTRAINT fk_tweet_username FOREIGN KEY (username) REFERENCES twitter_follow(username)
       )
       ;
-    `).thenQuery<void>(`
+    `).execute();
+    await this.query<void>(`
       CREATE TABLE IF NOT EXISTS twitter_event (
         id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
         created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -47,28 +50,29 @@ class Schema extends MysqlClient {
         data JSON NOT NULL
       )
       ;
-    `).thenQuery<void>(`
+    `).execute();
+    await this.query<void>(`
       CREATE TABLE IF NOT EXISTS slack_feed (
         channel_id VARCHAR(40) NOT NULL PRIMARY KEY,
         channel_name VARCHAR(40) NOT NULL
       )
       ;
-    `).thenQuery<void>(`
+    `).execute();
+    await this.query<void>(`
       CREATE TABLE IF NOT EXISTS slack_feed_twitter (
         slack_channel_id VARCHAR(40) NOT NULL,
         twitter_username VARCHAR(40) NOT NULL,
         PRIMARY KEY (slack_channel_id, twitter_username),
-        FOREIGN KEY FK_slack_feed_twitter_channel (slack_channel_id) REFERENCES slack_feed (channel_id),
-        FOREIGN KEY FK_slack_feed_twitter_username (twitter_username) REFERENCES twitter_follow (username)
+        FOREIGN KEY FK_slack_feed_twitter_channel(slack_channel_id) REFERENCES slack_feed(channel_id),
+        FOREIGN KEY FK_slack_feed_twitter_username(twitter_username) REFERENCES twitter_follow(username)
       )
       ;
-    `).onResults(() => {
-      env.debug('Schema migration complete');
-      this.ready = true;
-      for (const callback of this._onReady) {
-        callback();
-      }
-    });
+    `).execute();
+    env.debug('Schema migration complete');
+    this.ready = true;
+    for (const callback of this._onReady) {
+      callback();
+    }
   }
 
   public onReady(onReady: OnSchemaReady) {
@@ -82,4 +86,4 @@ class Schema extends MysqlClient {
 
 export const migrator = buildInstance(Schema);
 
-migrator.migrate();
+migrator.migrate().catch(env.debugFailure('Migrator failed'));

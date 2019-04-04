@@ -1,131 +1,108 @@
-import * as mysql2 from 'mysql2';
+import * as mysql2 from 'mysql2/promise';
 import env, {Logger} from '../lib/env';
 import {FromObject} from './FromObject';
 import {unindent} from '../lib/unindent';
 import * as mysql from 'mysql';
-import {RowDataPacket} from 'mysql2';
-import {OkPacket} from 'mysql2';
-import {FieldPacket} from 'mysql2';
 import {MysqlConfig} from './config/MysqlConfig';
 import {injectableType} from 'inclined-plane';
 
-type ResultSetCallback<T> = (rows: T) => void;
-type ErrorCallback = (err: Error) => void;
-type EventualParams<T> = any[] | ((previousResult: T) => any[]);
+export type QueryResultType = mysql2.RowDataPacket[] | mysql2.OkPacket | mysql2.RowDataPacket[][] | mysql2.OkPacket[];
+export type Mysql2QueryResult = [QueryResultType, mysql2.FieldPacket[]];
+export type InsertResults = mysql2.OkPacket;
+export type ResultSetConverter<ROWS> = (rows: mysql2.RowDataPacket[]) => ROWS;
+
+export interface SplitResults {
+  ok?: mysql2.OkPacket;
+  okays?: mysql2.OkPacket[];
+  rows?: mysql2.RowDataPacket[];
+  rowses?: mysql2.RowDataPacket[][];
+}
 
 export interface MysqlAdapter {
-  createConnection(options: mysql.ConnectionOptions): mysql2.Connection;
+  createConnection(options: mysql.ConnectionOptions): Promise<mysql2.Connection>;
 
-  query?<T extends RowDataPacket[][] | RowDataPacket[] | OkPacket | OkPacket[]>(
+  query?<ROWS>(
     sql: string,
     values: any | any[] | { [param: string]: any },
-    callback?: (err: any, result: T, fields: FieldPacket[]) => any
-  ): mysql2.Query;
+  ): Promise<Mysql2QueryResult>;
 }
 
-export type InsertResults = mysql2.OkPacket;
+export interface Query<PARAMS> {
+  execute(): Promise<InsertResults>;
 
-export interface Query<T = object> {
-  promise: Promise<T>;
-
-  onError(callback: ErrorCallback): this;
-
-  onResults(callback: ResultSetCallback<T>): this;
-
-  thenQuery<U>(sql: string, params?: EventualParams<T>): Query<U>;
+  fetch<ROWS>(rowsConverter?: ResultSetConverter<ROWS>): Promise<ROWS>;
 }
 
-export class QueryImpl<T> {
-  private _onError: ErrorCallback = null;
-  private _onResults: ResultSetCallback<T> = null;
-  private err: Error = null;
-  private nextQuery: QueryImpl<unknown> = null;
-  private rows: T = null;
-
+export class QueryImpl<PARAMS> implements Query<PARAMS> {
   constructor(
-    private readonly db: mysql2.Connection,
+    private readonly db: Promise<mysql2.Connection>,
     public readonly sql: string,
-    public readonly params: () => any[],
-    private readonly logger: Logger = env.debug.bind(env),
+    public readonly params: () => PARAMS,
+    private readonly logger: Logger = env.debug.bind(env)
   ) {
   }
 
-  get promise(): Promise<T> {
-    if (this.rows == null) {
-      return new Promise((resolve, reject) => this
-        .onResults(rows => resolve(rows))
-        .onError(reason => reject(reason))
-      );
-    } else {
-      return Promise.resolve(this.rows);
-    }
-  }
-
-  execute(): void {
-    const realParams: any[] = typeof this.params === 'function' ? this.params() : this.params;
-    this.db.query(this.sql, realParams, (err: Error, rows: any) => {
-      if (err) {
-        if (this.logger != null) {
-          this.logger(() => `SQL error: ${JSON.stringify(err)} ${this.sql}`);
+  private async doQuery(): Promise<SplitResults> {
+    const realParams: PARAMS = typeof this.params === 'function' ? this.params() : this.params;
+    const db = await this.db;
+    const queryResult = await db.query(this.sql, realParams);
+    const rows = Array.isArray(queryResult) ? queryResult[0] : null;
+    if (this.logger != null && rows != null && ((Array.isArray(rows) && rows.length > 0) || !Array.isArray(rows))) {
+      this.logger(() => {
+        const lines = [`SQL: ${unindent(this.sql)}`];
+        if (realParams != null && Array.isArray(realParams) && realParams.length > 0) {
+          lines.push(`Params: ${JSON.stringify(realParams)}`);
         }
-        this.err = err;
-        if (this._onError != null) {
-          this._onError(err);
+        if (Array.isArray(rows)) {
+          lines.push(`Rows: ${rows.length}`);
+        } else {
+          lines.push(`Results: ${JSON.stringify(rows)}`);
         }
-        return;
-      }
-      if (this.logger != null && rows != null && ((Array.isArray(rows) && rows.length > 0) || !Array.isArray(rows))) {
-        this.logger(() => {
-          const lines = [`SQL: ${unindent(this.sql)}`];
-          if (realParams != null && realParams.length > 0) {
-            lines.push(`Params: ${JSON.stringify(realParams)}`);
-          }
-          if (Array.isArray(rows)) {
-            lines.push(`Rows: ${rows.length}`);
-          } else {
-            lines.push(`Results: ${JSON.stringify(rows)}`);
-          }
-          return lines.join('\n');
-        });
-      }
-      this.rows = rows;
-      if (this._onResults != null) {
-        this._onResults(rows);
-      }
-      if (this.nextQuery != null) {
-        this.nextQuery.execute();
-      }
-    });
-  }
-
-  // noinspection JSUnusedGlobalSymbols
-  onError(callback: ErrorCallback): this {
-    if (this.err == null) {
-      this._onError = callback;
-    } else {
-      callback(this.err);
+        return lines.join('\n');
+      });
     }
-    return this;
-  }
-
-  // noinspection JSUnusedGlobalSymbols
-  onResults(callback: ResultSetCallback<T>): this {
-    if (this.rows == null) {
-      this._onResults = callback;
+    const split: SplitResults = {};
+    if (Array.isArray(rows)) {
+      const okPackets: mysql2.OkPacket[] = [];
+      const dataRows: mysql2.RowDataPacket[] = [];
+      for (const row of rows) {
+        switch (row.constructor.name) {
+          case 'OkPacket':
+            okPackets.push(<mysql2.OkPacket>row);
+            break;
+          case 'RowDataPacket':
+          case 'TextRow':
+            dataRows.push(<mysql2.RowDataPacket>row);
+            break;
+          default:
+            throw new Error(`Unknown result type in ${this.sql}: ${JSON.stringify(row)}`);
+        }
+      }
+      split.rows = dataRows;
+      split.okays = okPackets;
+      if (okPackets.length === 1) {
+        split.ok = okPackets[0];
+      }
     } else {
-      callback(this.rows);
+      split.ok = rows;
     }
-    return this;
+    return split;
   }
 
-  // noinspection JSUnusedGlobalSymbols
-  thenQuery<U>(sql: string, params?: EventualParams<T>): QueryImpl<U> {
-    const paramResolver: () => any[] = typeof params === 'function' ? () => params(this.rows) : () => params;
-    return (this.nextQuery = new QueryImpl<U>(this.db, sql, paramResolver));
+  public execute(): Promise<InsertResults> {
+    return this
+      .doQuery()
+      .then((split: SplitResults) => split.ok);
+  }
+
+  public fetch<ROWS>(rowsConverter: ResultSetConverter<ROWS> = (rows) => rows as any as ROWS): Promise<ROWS> {
+    return this
+      .doQuery()
+      .then((split) => rowsConverter(split.rows));
   }
 }
 
-const mysql2Connection = injectableType<mysql2.Connection>('mysql2.Connection');
+const mysql2Connection = injectableType<Promise<mysql2.Connection>>('mysql2.Connection');
 const mysql2ConnectionOptions = injectableType<mysql2.ConnectionOptions>('mysql2.ConnectionOptions');
 
 export abstract class MysqlClient {
@@ -135,7 +112,7 @@ export abstract class MysqlClient {
   ) {
   }
 
-  @mysql2Connection.inject protected _db: mysql2.Connection | undefined;
+  @mysql2Connection.inject protected _db: Promise<mysql2.Connection> | undefined;
 
   @mysql2ConnectionOptions.supplier
   public static connectionOptions(
@@ -157,7 +134,7 @@ export abstract class MysqlClient {
   protected static db(
     @mysql2ConnectionOptions.required connectionOptions: mysql2.ConnectionOptions,
     adapter: MysqlAdapter = mysql2,
-  ): mysql2.Connection {
+  ): Promise<mysql2.Connection> {
     return adapter.createConnection(connectionOptions);
   }
 
@@ -167,30 +144,17 @@ export abstract class MysqlClient {
   }
 
   public findObjects<T>(type: FromObject<T>, sql: string, params: any[] = []): Promise<T[]> {
-    return new Promise((resolve, reject) => {
-      this.query(sql, params)
-        .onError(err => reject(err))
-        .onResults(rows => {
-          if (Array.isArray(rows)) {
-            resolve((rows || []).map(row => type.fromObject(row)));
-          } else {
-            if (this.logger != null) {
-              this.logger(() => `Expected an array, but found: ${JSON.stringify(rows)}`);
-            }
-            resolve([]);
-          }
-        });
-    });
+    return this
+      .query(sql, params)
+      .fetch((rows) => rows.map((row) => type.fromObject(row)));
   }
 
   protected findOne<T>(type: FromObject<T>, fieldName: string, fieldValue: any): Promise<T | null> {
     return this.findObject(type, this.selectOne(fieldName), [fieldValue]);
   }
 
-  public query<T>(sql: string, params?: any[]): Query<T> {
-    const query = new QueryImpl<T>(this._db, sql, () => params, this.logger);
-    query.execute();
-    return query;
+  public query<PARAMS>(sql: string, params?: PARAMS): Query<PARAMS> {
+    return new QueryImpl<PARAMS>(this._db, sql, () => params, this.logger);
   }
 
   protected selectOne(fieldName: string): string {

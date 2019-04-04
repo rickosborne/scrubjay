@@ -59,7 +59,7 @@ class TwitterClientImpl implements TwitterClient {
               wait = 0;
               if (this.userNames.indexOf(tweet.user.name) >= 0) {
                 logEvent = true;
-                this.tweetStore.store(tweet);
+                this.tweetStore.store(tweet).catch(env.debugFailure('Unable to store tweet: '));
                 for (const callback of this.tweetCallbacks) {
                   callback(tweet);
                 }

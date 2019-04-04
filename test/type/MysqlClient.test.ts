@@ -1,9 +1,7 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
-import {MysqlAdapter, MysqlClient} from '../../type/MysqlClient';
-import * as mysql2 from 'mysql2';
-import {RowDataPacket} from 'mysql2';
-import {OkPacket} from 'mysql2';
+import {Mysql2QueryResult, MysqlAdapter, MysqlClient} from '../../type/MysqlClient';
+import * as mysql2 from 'mysql2/promise';
 import env, {Logger} from '../../lib/env';
 
 describe('MysqlClient', () => {
@@ -22,7 +20,7 @@ describe('MysqlClient', () => {
           if (optionsCallback != null) {
             optionsCallback(options);
           }
-          return mockConnection;
+          return Promise.resolve(mockConnection);
         }
       };
       super(logCallback);
@@ -30,27 +28,33 @@ describe('MysqlClient', () => {
       this.dbAdapter = adapter;
     }
 
-    testQuery(expectedSql: string, expectedParams: any[], rows: any, err: mysql2.QueryError | null, block: () => void) {
+    public static toRow(data: object): mysql2.RowDataPacket {
+      class RowDataPacket {}
+      return Object.assign(new RowDataPacket(), data) as any;
+    }
+
+    async testQuery<PARAMS, ROWS extends mysql2.RowDataPacket[]>(
+      expectedSql: string,
+      expectedParams: PARAMS,
+      rows: ROWS,
+      err: mysql2.QueryError | null,
+      block: () => Promise<void>
+    ) {
       let asserted = false;
 
-      function q<T extends RowDataPacket[][] | RowDataPacket[] | OkPacket | OkPacket[]>(
+      mockConnection.query = function q(
         sql: string,
         values: any | any[] | { [param: string]: any },
-        callback?: (err: mysql2.QueryError | null, result: T, fields: mysql2.FieldPacket[]) => any
-      ): mysql2.Query {
+      ): Promise<Mysql2QueryResult> {
         asserted = true;
         expect(sql, 'sql').to.equal(expectedSql);
         expect(values, 'params').to.deep.eq(expectedParams);
-        callback(err, rows, null);
-        return <mysql2.Query>{};
-      }
-
-      try {
-        mockConnection.query = <any>q;
-        block();
-      } finally {
-        delete mockConnection.query;
-      }
+        if (err != null) {
+          throw err;
+        }
+        return Promise.resolve<Mysql2QueryResult>([rows, []]);
+      } as any;
+      await block();
       expect(asserted, `testQuery saw query execution`).to.equal(true);
     }
   }
@@ -73,7 +77,6 @@ describe('MysqlClient', () => {
   describe('query', async () => {
     it('passes through sql', async () => {
       let didLog = false;
-      let caught: any = null;
       const testable = new Testable(<mysql2.ConnectionOptions>{}, undefined, message => {
         didLog = true;
         const msg: string = typeof message === 'function' ? message() : message;
@@ -81,26 +84,29 @@ describe('MysqlClient', () => {
           .and.matches(/Params:/, 'Params')
           .and.matches(/Rows: 1/, 'Record Count');
       });
-      testable.testQuery('some sql', [123], [456], null, async () => {
-        const result = await testable.query<any[]>(`some sql`, [123]).promise.catch(reason => {
-          caught = reason;
-        });
-        expect(result, 'rows').to.deep.eq([456]);
+      await testable.testQuery('some sql', [123], [Testable.toRow({num: 456})] as any, null, async () => {
+        const result = await testable
+          .query(`some sql`, [123])
+          .fetch();
+        expect(result, 'rows').to.deep.eq([{num: 456}]);
       });
       expect(didLog, 'logs query stats').equals(true);
-      expect(caught).to.equal(null);
     });
     it('passes along errors', async () => {
       const testable = new Testable();
       const error = <mysql2.QueryError>{};
       let caughtError = false;
-      testable.testQuery('some sql', [123], [456], error, async () => {
-        const result = await testable.query<any[]>(`some sql`, [123]).promise.catch(reason => {
+      await testable.testQuery('some sql', [123], [Testable.toRow({num: 456})] as any, error, async () => {
+        try {
+          const result = await testable
+            .query(`some sql`, [123])
+            .fetch();
+          expect(result).to.equal(undefined);
+        } catch (e) {
           caughtError = true;
-          expect(reason).to.equal(error);
-        });
+          expect(e).to.equal(error);
+        }
         expect(caughtError).to.equal(true);
-        expect(result).to.equal(undefined);
       });
     });
   });

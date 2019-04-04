@@ -9,12 +9,14 @@ export class ScrubjayConfigStoreImpl extends MysqlClient implements ScrubjayConf
   }
 
   protected valueForKey(key: string, defaultValue: string = null): Promise<string | null> {
-    return this.query<{ value: string }[]>(`
+    return this.query<string[]>(`
       SELECT \`value\`
       FROM scrubjay_config
       WHERE (\`key\` = ?)
-    `, [key]).promise.then(rows => {
-      return rows == null || rows.length !== 1 ? defaultValue : rows[0].value;
-    });
+    `, [key])
+      .fetch<{ value: string }[]>()
+      .then(rows => {
+        return rows == null || rows.length !== 1 ? defaultValue : rows[0].value;
+      });
   }
 }

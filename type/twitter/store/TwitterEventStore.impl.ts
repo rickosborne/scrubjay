@@ -11,12 +11,14 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
   }
 
   protected findOneOrNull(where: string, ...params: any[]): Promise<Tweet | null> {
-    return this.query<{ data: object }[]>(`
+    return this.query<any[]>(`
       SELECT data
       FROM twitter_event
       WHERE ${where}
       ORDER BY created DESC
-    `, params).promise.then(rows => rows == null || rows.length < 1 ? null : Tweet.fromObject(rows[0].data));
+    `, params)
+      .fetch<{data: string}[]>()
+      .then(rows => rows == null || rows.length < 1 ? null : Tweet.fromObject(rows[0].data));
   }
 
   latest(retweetsAcceptable: boolean = false, repliesAcceptable: boolean = false): Promise<Tweet> {
@@ -59,17 +61,22 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
         return;
       }
       this
-        .query<{ id: number }[]>(`
+        .query<any[]>(`
           SELECT id
           FROM twitter_event
           WHERE ${where.join(' OR ')}
         `, params)
-        .onResults(rows => {
+        .fetch<{id: string}[]>()
+        .then((rows) => {
           if (rows == null || rows.length === 0) {
-            this.query<void>(`
+            this.query<[string, string]>(`
               INSERT IGNORE INTO twitter_event (username, data)
               VALUES (?, ?)
-            `, [username, JSON.stringify(event)]);
+            `, [username, JSON.stringify(event)])
+              .execute()
+              .catch((reason) => {
+                env.debug(() => `Failed to add event: ${reason}`);
+              });
           } else {
             env.debug(() => `Already have a version of tweet: ${rows[0].id}`);
           }

@@ -1,5 +1,5 @@
 import {Tweet} from '../Tweet';
-import {InsertResults, MysqlClient} from '../../MysqlClient';
+import {MysqlClient} from '../../MysqlClient';
 import {Identity} from '../../Identity';
 import {TwitterUser} from '../TwitterUser';
 import {TweetStore} from './TweetStore';
@@ -39,7 +39,7 @@ class TweetStoreImpl extends MysqlClient implements TweetStore {
 
   public store(tweet: Tweet): Promise<boolean> {
     return this
-      .query<InsertResults>(`
+      .query<[string, string, Date, string, void]>(`
         INSERT IGNORE INTO tweet (id, username, created, txt, html)
         VALUES (?, ?, ?, ?, ?)
         ;
@@ -50,7 +50,7 @@ class TweetStoreImpl extends MysqlClient implements TweetStore {
         tweet.text,
         null,
       ])
-      .promise
+      .execute()
       .then(insertResults => insertResults.affectedRows > 0 || insertResults.changedRows > 0);
   }
 }

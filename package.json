@@ -24,6 +24,7 @@
     "mocha": "^6.0.2",
     "nyc": "^13.3.0",
     "ts-loader": "^5.3.3",
+    "ts-mocha": "^6.0.0",
     "ts-node": "^8.0.3",
     "tslint": "^5.13.1",
     "typescript": "^3.3.3333",
@@ -41,9 +42,9 @@
     "package": "webpack-cli",
     "precompile": "npm run clean && npm run lint",
     "prepackage": "npm run clean && npm run lint",
-    "prestart": "npm run package",
-    "start": "node $NODE_DEBUG_OPTION dist/scrubjay.js",
-    "test": "TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' mocha --require ts-node/register test/**/*.ts"
+    "un-prestart": "npm run package",
+    "start": "TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' node $NODE_DEBUG_OPTION ./node_modules/.bin/ts-node scrubjay.ts",
+    "test": "TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' node $NODE_DEBUG_OPTION ./node_modules/.bin/ts-mocha test/**/*.ts"
   },
   "version": "0.1.0"
 }
