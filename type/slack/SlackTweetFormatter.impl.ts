@@ -22,7 +22,7 @@ export interface EntityExtractor<T extends Indexed> {
 
   pad: boolean;
 
-  access(entities: TweetEntities): T[];
+  access(entities: TweetEntities): T[] | null | undefined;
 
   convert(item: T, flags?: TweetRenderingFlags, later?: DelayedRenderActions): string;
 
@@ -59,12 +59,12 @@ const extractors: EntityExtractor<Indexed>[] = [
             && variant.url != null
             && variant.bitrate != null
             && variant.contentType === TweetMedia.VIDEO_MP4)
-          .reduce((left, right) => left == null ? right : right == null ? left : left.bitrate > right.bitrate ? left : right, null);
+          .reduce((left, right) => left == null ? right : right == null ? left : (left.bitrate || 0) > (right.bitrate || 0) ? left : right);
         if (best != null && best.url != null) {
-          later.addMessage(PostableMessage.from(`<${best.url}>`));
+          later.addMessage(PostableMessage.fromText(`<${best.url}>`));
         }
       } else if (media.url != null) {
-        later.addMessage(PostableMessage.from(`<${media.url}>`));
+        later.addMessage(PostableMessage.fromText(`<${media.url}>`));
       }
       return `<${media.url}|${media.displayUrl}>`;
     },
@@ -105,8 +105,8 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
   }
 
   // noinspection JSMethodCanBeStatic
-  protected blockFromProfilePic(tweet: Tweet, flags: TweetRenderingFlags = {}) {
-    return tweet == null || tweet.user == null || tweet.user.profileImage == null ? null
+  protected blockFromProfilePic(tweet: Tweet, flags: TweetRenderingFlags = {}): ImageBlock | undefined {
+    return tweet == null || tweet.user == null || tweet.user.profileImage == null ? undefined
       : new ImageBlock(tweet.user.profileImage, `:${flags.followEmoji || FOLLOW_EMOJI_DEFAULT}:${tweet.user.name}`);
   }
 
@@ -123,7 +123,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     }
     builder.section(
       new MarkdownTextBlock(this.markdownFromTweet(tweet, flags, later)),
-      fields.length === 0 ? null : fields,
+      fields.length === 0 ? undefined : fields,
       this.blockFromProfilePic(tweet, flags),
     );
   }
@@ -163,6 +163,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     if (overall >= 0) {
       return overall - left;
     }
+    return fudge;
   }
 
   public linkForChannel(channel: Channel | FeedChannel): string {
@@ -170,13 +171,15 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
   }
 
   protected markdownFromTweet(tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions): string {
-    const attribution = `*${this.userLink(tweet.user.name, flags.followEmoji)}* (${this.slackEscape(tweet.user.fullName)})`;
+    const attribution = tweet.user == null || tweet.user.name == null ? ''
+      : `*${this.userLink(tweet.user.name, flags.followEmoji)}* (${this.slackEscape(tweet.user.fullName)})`;
     const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
-    const retweeted = tweet.retweeted == null ? ''
+    const retweeted = tweet.retweeted == null || tweet.retweeted.user == null || tweet.retweeted.user.name == null ? ''
       : ` retweeted ${this.userLink(tweet.retweeted.user.name, flags.followEmoji)} (${this.slackEscape(tweet.retweeted.user.fullName)})`;
     const lines = [`${explanation}${attribution}${retweeted}:`];
     const originalText: string = tweet.longText;
-    const sparseChunks = this.chunksForEntities(tweet.longTextEntities, flags, later);
+    const entities = tweet.longTextEntities;
+    const sparseChunks = entities == null ? [] : this.chunksForEntities(entities, flags, later);
     const adjustedChunks = this.adjustChunks(sparseChunks, originalText);
     const result = this.replaceChunks(adjustedChunks, originalText, flags);
     lines.push(result);
@@ -196,8 +199,10 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
       this.blocksFromTweet(builder, tweet.quoted, Object.assign({quoted: true}, options), later);
     }
     builder.blocks.push(...lateBlocks);
-    const message = PostableMessage.from(builder.blocks.map(b => <slack.KnownBlock>b.block))
-      .withText(`@${tweet.user.name}: ${tweet.longText}`);
+    const message = PostableMessage.fromBlocks(
+      builder.blocks.map(b => <slack.KnownBlock>b.block),
+      `@${tweet.user.name}: ${tweet.longText}`
+    );
     messages.unshift(message);
     return messages;
   }
@@ -225,7 +230,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     return result;
   }
 
-  public slackEscape(s: string): string {
+  public slackEscape(s?: string): string {
     return (s || '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -240,7 +245,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     return statusId == null ? base : `${base}/status/${statusId}`;
   }
 
-  public userLink(name: string, emoji?: string): string {
+  public userLink(name: string, emoji?: string | null): string {
     const n = name.replace(/^@/, '');
     const followerEmoji = emoji || FOLLOW_EMOJI_DEFAULT;
     return `<${this.twitterUrl(n)}|:${followerEmoji}:${n}>`;

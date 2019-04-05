@@ -6,7 +6,7 @@ export abstract class AccessoryElement extends SlackBlock {
   protected constructor(
     type: string,
   ) {
-    super(type, null);
+    super(type);
   }
 
   abstract get block(): ClientAction

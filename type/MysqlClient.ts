@@ -9,7 +9,7 @@ import {injectableType} from 'inclined-plane';
 export type QueryResultType = mysql2.RowDataPacket[] | mysql2.OkPacket | mysql2.RowDataPacket[][] | mysql2.OkPacket[];
 export type Mysql2QueryResult = [QueryResultType, mysql2.FieldPacket[]];
 export type InsertResults = mysql2.OkPacket;
-export type ResultSetConverter<ROWS> = (rows: mysql2.RowDataPacket[]) => ROWS;
+export type ResultSetConverter<ROW> = (rows: Array<mysql2.RowDataPacket>) => Array<ROW>;
 
 export interface SplitResults {
   ok?: mysql2.OkPacket;
@@ -28,22 +28,23 @@ export interface MysqlAdapter {
 }
 
 export interface Query<PARAMS> {
-  execute(): Promise<InsertResults>;
+  execute(): Promise<InsertResults | undefined>;
 
-  fetch<ROWS>(rowsConverter?: ResultSetConverter<ROWS>): Promise<ROWS>;
+  fetch<ROW>(rowsConverter?: ResultSetConverter<ROW>): Promise<Array<ROW>>;
 }
 
 export class QueryImpl<PARAMS> implements Query<PARAMS> {
   constructor(
     private readonly db: Promise<mysql2.Connection>,
     public readonly sql: string,
-    public readonly params: () => PARAMS,
+    public readonly params?: () => PARAMS,
     private readonly logger: Logger = env.debug.bind(env)
   ) {
   }
 
   private async doQuery(): Promise<SplitResults> {
-    const realParams: PARAMS = typeof this.params === 'function' ? this.params() : this.params;
+    const realParams: PARAMS | undefined = this.params == null ? undefined
+      : typeof this.params === 'function' ? this.params() : this.params;
     const db = await this.db;
     const queryResult = await db.query(this.sql, realParams);
     const rows = Array.isArray(queryResult) ? queryResult[0] : null;
@@ -84,21 +85,21 @@ export class QueryImpl<PARAMS> implements Query<PARAMS> {
         split.ok = okPackets[0];
       }
     } else {
-      split.ok = rows;
+      split.ok = rows == null ? undefined : rows;
     }
     return split;
   }
 
-  public execute(): Promise<InsertResults> {
+  public execute(): Promise<InsertResults | undefined> {
     return this
       .doQuery()
       .then((split: SplitResults) => split.ok);
   }
 
-  public fetch<ROWS>(rowsConverter: ResultSetConverter<ROWS> = (rows) => rows as any as ROWS): Promise<ROWS> {
+  public fetch<ROW>(rowsConverter: ResultSetConverter<ROW> = (rows) => rows as Array<ROW>): Promise<Array<ROW>> {
     return this
       .doQuery()
-      .then((split) => rowsConverter(split.rows));
+      .then((split) => Array.isArray(split.rows) ? rowsConverter(split.rows) : []);
   }
 }
 
@@ -140,10 +141,10 @@ export abstract class MysqlClient {
 
   public findObject<T>(type: FromObject<T>, sql: string, params: any[] = []): Promise<T | null> {
     return this.findObjects(type, sql, params)
-      .then(items => items.length > 0 ? items[0] : null);
+      .then(items => items != null && items.length > 0 ? items[0] : null);
   }
 
-  public findObjects<T>(type: FromObject<T>, sql: string, params: any[] = []): Promise<T[]> {
+  public findObjects<T>(type: FromObject<T>, sql: string, params: any[] = []): Promise<Array<T>> {
     return this
       .query(sql, params)
       .fetch((rows) => rows.map((row) => type.fromObject(row)));
@@ -154,7 +155,10 @@ export abstract class MysqlClient {
   }
 
   public query<PARAMS>(sql: string, params?: PARAMS): Query<PARAMS> {
-    return new QueryImpl<PARAMS>(this._db, sql, () => params, this.logger);
+    if (this._db == null) {
+      throw new Error('No database connection');
+    }
+    return new QueryImpl<PARAMS>(this._db, sql, params == null ? undefined : () => params, this.logger);
   }
 
   protected selectOne(fieldName: string): string {

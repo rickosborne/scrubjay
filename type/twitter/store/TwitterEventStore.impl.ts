@@ -17,11 +17,11 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
       WHERE ${where}
       ORDER BY created DESC
     `, params)
-      .fetch<{data: string}[]>()
+      .fetch<{data: string}>()
       .then(rows => rows == null || rows.length < 1 ? null : Tweet.fromObject(rows[0].data));
   }
 
-  latest(retweetsAcceptable: boolean = false, repliesAcceptable: boolean = false): Promise<Tweet> {
+  latest(retweetsAcceptable: boolean = false, repliesAcceptable: boolean = false): Promise<Tweet | undefined> {
     const conditions: string[] = [];
     if (!repliesAcceptable) {
       conditions.push('JSON_TYPE(JSON_EXTRACT(data, \'$.in_reply_to_status_id_str\')) = \'NULL\'');
@@ -32,18 +32,19 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
     if (conditions.length === 0) {
       conditions.push('(1 = 1)');
     }
-    return this.findOneOrNull(conditions.join(' AND '));
+    return this.findOneOrNull(conditions.join(' AND ')).then(one => one == null ? undefined : one);
   }
 
-  latestFor(username: string): Promise<Tweet> {
+  latestFor(username: string): Promise<Tweet | undefined> {
     return this.findOneOrNull(`
       (username = ?)
       AND JSON_TYPE(JSON_EXTRACT(data, '$.in_reply_to_status_id_str')) = 'NULL'
       AND JSON_TYPE(JSON_EXTRACT(data, '$.retweeted_status')) IS NULL
-    `, username.replace(/^@/, ''));
+    `, username.replace(/^@/, ''))
+      .then(one => one == null ? undefined : one);
   }
 
-  save(event: TweetJSON = null): void {
+  save(event: TweetJSON): void {
     const username = event != null && event['user'] != null ? event['user']['screen_name'] : null;
     if (event != null) {
       const where: string[] = [];
@@ -61,15 +62,15 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
         return;
       }
       this
-        .query<any[]>(`
+        .query(`
           SELECT id
           FROM twitter_event
           WHERE ${where.join(' OR ')}
         `, params)
-        .fetch<{id: string}[]>()
+        .fetch<{id: string}>()
         .then((rows) => {
           if (rows == null || rows.length === 0) {
-            this.query<[string, string]>(`
+            this.query(`
               INSERT IGNORE INTO twitter_event (username, data)
               VALUES (?, ?)
             `, [username, JSON.stringify(event)])

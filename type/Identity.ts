@@ -4,7 +4,7 @@ import {Tweet} from './twitter/Tweet';
 
 export class Identity {
   // noinspection JSUnusedGlobalSymbols
-  static fromObject(object: {}): Identity {
+  static fromObject(object: {}): Identity | null {
     return buildFromObject(Identity, object)
       .num('id')
       .string('name')

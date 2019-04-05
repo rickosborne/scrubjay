@@ -57,7 +57,7 @@ export function formatDurationMS(ms: number): string {
     if (remaining <= 0) {
       break;
     }
-    let leftover: number = null;
+    let leftover: number | null = null;
     if (timeJump.toSlower == null) {
       leftover = remaining;
       remaining = 0;

@@ -5,11 +5,11 @@ import {PostableMessage} from './PostableMessage';
 import {SlackBotCommand} from './SlackBotCommand';
 
 export interface RenderOptions {
-  followEmoji?: string;
+  followEmoji?: string | null;
 }
 
 export interface SlackBot {
-  command(key: string | RegExp, helpText: string | null, callback: (command: SlackBotCommand) => void): void;
+  command(key: string | RegExp, helpText: string | undefined, callback: (command: SlackBotCommand) => void): void;
 
   help(key: string | RegExp): void;
 

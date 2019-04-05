@@ -39,7 +39,7 @@ class TweetStoreImpl extends MysqlClient implements TweetStore {
 
   public store(tweet: Tweet): Promise<boolean> {
     return this
-      .query<[string, string, Date, string, void]>(`
+      .query(`
         INSERT IGNORE INTO tweet (id, username, created, txt, html)
         VALUES (?, ?, ?, ?, ?)
         ;
@@ -51,6 +51,6 @@ class TweetStoreImpl extends MysqlClient implements TweetStore {
         null,
       ])
       .execute()
-      .then(insertResults => insertResults.affectedRows > 0 || insertResults.changedRows > 0);
+      .then(insertResults => insertResults != null && (insertResults.affectedRows > 0 || insertResults.changedRows > 0));
   }
 }

@@ -39,7 +39,7 @@ export class Tweet {
     return this.text;
   }
 
-  get longTextEntities(): TweetEntities {
+  get longTextEntities(): TweetEntities | undefined {
     if (this.extended != null && this.extended.entities != null) {
       return this.extended.entities;
     }
@@ -67,7 +67,7 @@ export class Tweet {
       .scalar(['in_reply_to_status_id_str', 'in_reply_to_status_id'], null, false)
       .scalar(['in_reply_to_user_id_str', 'in_reply_to_user_id'], null, false)
       .obj('retweeted_status', Tweet, false)
-      .orNull();
+      .orThrow((message) => new Error(`Could not create Tweet: ${message}`));
   }
 
   public static unescapeText(s: string): string {

@@ -9,24 +9,27 @@ export class TwitterUserStoreImpl extends MysqlClient implements TwitterUserStor
     return this.findOne(TwitterUser, 'username', username);
   }
 
-  public async merge(user: TwitterUser): Promise<TwitterUser> {
-    const rows = await this.query<[string]>(`
+  public async merge(user: TwitterUser): Promise<TwitterUser | null> {
+    const rows = await this.query(`
       SELECT ident_id
       FROM twitter_follow
       WHERE (username = ?)
     `, [user.name])
       .fetch<{ ident_id: number }[]>();
     if (rows == null || rows.length === 0) {
-      const slug = (user.fullName || user.name)
+      const slug = (user.fullName || user.name || '')
         .toLowerCase()
         .replace(/'/g, '')
         .replace(/[^a-z0-9]+/g, '-');
       const insertResults = await this
-        .query<[string, string]>(`
+        .query(`
           INSERT INTO ident (name, slug)
           VALUES (?, ?)
         `, [user.fullName, slug])
         .execute();
+      if (insertResults == null) {
+        throw new Error(`Coul not insert twitter user: "${slug}"`);
+      }
       await this.query(`
         INSERT INTO twitter_follow (id, username, location, url, description, ident_id, active)
         VALUES (?, ?, ?, ?, ?, ?, 1)
@@ -40,7 +43,7 @@ export class TwitterUserStoreImpl extends MysqlClient implements TwitterUserStor
       `, [user.location, user.url, user.description, user.name])
         .execute();
     }
-    return this.findOneByName(user.name);
+    return this.findOneByName(user.name || '?');
   }
 
   protected selectOne(fieldName: string): string {

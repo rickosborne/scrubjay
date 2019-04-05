@@ -13,12 +13,11 @@ import {DateSelectBlock} from './block/DateSelectBlock';
 import {OverflowSelectBlock} from './block/OverflowSelectBlock';
 import {AccessoryElement} from './block/AccessoryElement';
 
-export function buildAndCall<T>(item: T, collection: T[], callback?: (item: T) => void) {
+export function buildAndCall<T>(item: T, collection: any[], callback?: (item: T) => void): void {
   collection.push(item);
   if (callback != null) {
     callback(item);
   }
-  return this;
 }
 
 export declare type KnownActionBlock =
@@ -48,10 +47,12 @@ export class SlackFormatBuilder {
 
   // noinspection JSUnusedGlobalSymbols
   public context(callback: (context: ContextBlock) => void): this {
-    return buildAndCall(new ContextBlock([]), this.blocks, callback);
+    buildAndCall(new ContextBlock([]), this.blocks, callback);
+    return this;
   }
 
-  public section(text: TextBlock, fields: TextBlock[] = [], accessory: AccessoryElement): this {
-    return buildAndCall(new SectionBlock(text, fields, accessory), this.blocks);
+  public section(text: TextBlock, fields: TextBlock[] = [], accessory: AccessoryElement | undefined): this {
+    buildAndCall(new SectionBlock(text, fields, accessory), this.blocks);
+    return this;
   }
 }

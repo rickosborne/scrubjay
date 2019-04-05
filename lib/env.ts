@@ -26,39 +26,21 @@ export class Env {
     public readonly errorLogger: Logger = console.error,
     private _fs: FileSystemAbstraction = fs
   ) {
-    this._debug = this.param('DEBUG', false, v => boolish(v))
-      || this.param('NODE_DEBUG', false, v => boolish(v));
+    this._debug = this.param('DEBUG', false, v => boolish(v, false))
+      || this.param('NODE_DEBUG', false, v => boolish(v, false));
   }
 
   public get isDebug(): boolean {
     return this._debug;
   }
 
-  // noinspection JSUnusedGlobalSymbols
-  public booleanDefaultFalse(): (s: string) => boolean {
-    return s => {
-      const val = String(s || '').toLowerCase();
-      return val !== '1' && val !== 'true' && val !== 't' && val !== 'yes' && val !== 'y';
-    };
-  }
-
-  public booleanDefaultTrue(): (s: string) => boolean {
-    return s => {
-      const val = String(s || '').toLowerCase();
-      return val !== '0' && val !== 'false' && val !== 'f' && val !== 'n' && val !== 'no';
-    };
-  }
-
   public debug(callback: string | AnySupplier, err: any = null) {
     if (this._debug) {
       const message = typeof callback === 'function' ? callback() : callback;
       if (message != null) {
-        const msg = typeof message === 'string' ? message : JSON.stringify(message);
-        if (this.infoLogger != null) {
-          this.infoLogger(`${getTimeHHMMSS()} ${indentHanging(msg, 9)}`);
-        }
+        this.infoLogger(`${getTimeHHMMSS()} ${indentHanging(message, 9)}`);
       }
-      if (err instanceof Error && this.errorLogger != null) {
+      if (err instanceof Error) {
         this.errorLogger(err.message);
         this.errorLogger(err.stack);
       }
@@ -70,20 +52,20 @@ export class Env {
   }
 
   // noinspection JSMethodCanBeStatic
-  public fromJson<T = {}>(path: string, type?: FromObject<T>): T {
+  public fromJson<T = {}>(path: string, type?: FromObject<T> | null): T {
     const object = JSON.parse(this._fs.readFileSync(path, {encoding: 'utf8'}));
     return type == null ? object : type.fromObject(object);
   }
 
   public param<T = string>(
     name: string,
-    defaultValue: T = null,
+    defaultValue: T | undefined | null = null,
     converter: (s: string) => T = (s) => <T>(<unknown>s),
-    thisArg: {} = null,
+    thisArg: {} | undefined | null = null,
   ): T {
     const value = this._env[name];
     if (value == null) {
-      if (defaultValue == null) {
+      if (defaultValue === null || defaultValue === undefined) {
         throw new Error(`Missing required parameter: ${name}`);
       }
       this.debug(() => `${name}=${defaultValue} (default)`);

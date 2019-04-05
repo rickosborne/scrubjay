@@ -14,7 +14,7 @@ export class OverflowSelectBlock extends SelectBlock {
     confirm?: ConfirmationBlock,
     blockId?: string,
   ) {
-    super(OverflowSelectBlock.TYPE, null, actionId, confirm, blockId);
+    super(OverflowSelectBlock.TYPE, undefined, actionId, confirm, blockId);
   }
 
   get block(): client.Overflow {
@@ -22,7 +22,7 @@ export class OverflowSelectBlock extends SelectBlock {
       type: OverflowSelectBlock.TYPE,
       action_id: this.actionId,
       confirm: this.confirm == null ? undefined : this.confirm.block,
-      options: this.options == null || this.options.length < 1 ? undefined : this.options.map(o => o.block)
+      options: this.options == null || this.options.length < 1 ? [] : this.options.map(o => o.block)
     };
   }
 }

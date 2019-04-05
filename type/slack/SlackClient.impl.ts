@@ -1,4 +1,4 @@
-import {RTMClient, WebClient} from '@slack/client';
+import {RTMClient, WebAPICallResult, WebClient} from '@slack/client';
 import {SlackConfig} from '../config/SlackConfig';
 import {DirectMessage} from './DirectMessage';
 import {PostableMessage} from './PostableMessage';
@@ -15,7 +15,7 @@ class SlackClientImpl implements SlackClient {
 
   private readonly oauth: string;
   private readonly onMessageCallbacks: OnSlackMessage[] = [];
-  private rtm: RTMClient = null;
+  private rtm: RTMClient | null = null;
   private readonly web: WebClient;
 
   constructor(
@@ -32,16 +32,15 @@ class SlackClientImpl implements SlackClient {
       reply: (...replies: PostableMessage[]) => {
         return this.send(...replies);
       },
-      channel(name: string): Promise<Channel> {
+      channel(name: string): Promise<Channel | undefined> {
         const simpleName = name.replace(/^#/, '').toLowerCase();
         return self.web.conversations.list({
           types: 'public_channel,private_channel',
           token: self.oauth
-        }).then((result: WebChannelsListResult) => {
+        }).then((result: WebAPICallResult) => {
           if (result.ok) {
-            return result.channels.filter(channel => simpleName === channel.name.toLowerCase()).shift();
+            return (result as WebChannelsListResult).channels.filter(channel => simpleName === channel.name.toLowerCase()).shift();
           }
-          return null;
         });
       },
     };
@@ -49,7 +48,8 @@ class SlackClientImpl implements SlackClient {
 
   private messageHandler(message: DirectMessage): void {
     const subtype: string = message.subtype || '';
-    if (['bot_message', 'message_changed'].indexOf(subtype) >= 0 || (!message.subtype && message.user === this.rtm.activeUserId)) {
+    if (['bot_message', 'message_changed'].indexOf(subtype) >= 0
+      || (!message.subtype && message.user === (this.rtm == null ? null : this.rtm.activeUserId))) {
       return;
     }
     env.debug(() => message);
@@ -136,22 +136,18 @@ class SlackClientImpl implements SlackClient {
       });
   }
 
-  public start(): Promise<void> {
+  public async start(): Promise<void> {
     if (this.rtm != null) {
-      (async () => await this.rtm.disconnect())();
+      await this.rtm.disconnect();
       this.rtm = null;
     }
     this.rtm = new RTMClient(this.oauth);
     this.rtm.on('message', this.messageHandler.bind(this));
-    return new Promise((resolve, reject) => {
-      this.rtm.start().then((rtmResult: RTMConnectResult) => {
-        env.debug(() => rtmResult);
-        if (!rtmResult.ok) {
-          reject(`Could not connect to RTM`);
-        } else {
-          resolve();
-        }
-      }).catch(reason => reject(reason));
+    return this.rtm.start().then((rtmResult: RTMConnectResult) => {
+      env.debug(() => rtmResult);
+      if (!rtmResult.ok) {
+        throw new Error(`Could not connect to RTM`);
+      }
     });
   }
 
@@ -160,7 +156,7 @@ class SlackClientImpl implements SlackClient {
       return [eventually.with(channel, ts)];
     }
     if (typeof eventually === 'string') {
-      return [PostableMessage.from(eventually, channel, ts)];
+      return [PostableMessage.fromText(eventually, channel, ts)];
     }
     if (Array.isArray(eventually)) {
       return eventually.map(e => e.with(channel, ts));

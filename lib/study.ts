@@ -22,11 +22,11 @@ class Maybe implements Studied {
 
   ifMatch(regex: RegExp, callback: IfMatch): Studied {
     const matches = regex.exec(this.string);
-    if (matches != null) {
+    if (matches !== null) {
       callback(...matches.slice(1));
       return done;
     }
-    return undefined;
+    return this;
   }
 
   otherwise(callback: () => void) {

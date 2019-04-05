@@ -1,40 +1,36 @@
 import * as slack from '@slack/client';
-import {MessageAttachment} from '@slack/client';
 import {SlackId, SlackTimestamp} from './RTEvent';
 
 export class PostableMessage implements slack.ChatPostMessageArguments {
-  static from(object: string | slack.KnownBlock[] | PostableMessage, channel?: SlackId, thread?: SlackTimestamp): PostableMessage | null {
-    if (object instanceof PostableMessage) {
-      return object;
-    }
-    if (typeof object === 'string') {
-      return new PostableMessage(channel, thread, object);
-    }
-    if (Array.isArray(object)) {
-      return new PostableMessage(channel, thread, undefined, object);
-    }
-    return null;
+  static fromBlocks(blocks: slack.KnownBlock[], text: string, channel?: SlackId, thread?: SlackTimestamp): PostableMessage {
+    return new PostableMessage(text, channel, thread, blocks);
   }
 
-  // noinspection JSUnusedGlobalSymbols
+  static fromText(text: string, channel?: SlackId, thread?: SlackTimestamp): PostableMessage {
+    return new PostableMessage(text, channel, thread);
+  }
+
   constructor(
-    public readonly channel: SlackId,
-    public readonly thread_ts: SlackTimestamp,
     public readonly text: string,
+    private _channel?: SlackId,
+    public readonly thread_ts?: SlackTimestamp,
     public readonly blocks?: slack.KnownBlock[],
-    public readonly attachments?: MessageAttachment[],
+    public readonly attachments?: slack.MessageAttachment[],
   ) {
+  }
+
+  get channel(): string {
+    if (this._channel == null) {
+      throw new Error(`PostableMessage with unresolved channel: ${this}`);
+    }
+    return this._channel;
   }
 
   toString(): string {
     return JSON.stringify(this, null, 2);
   }
 
-  with(channelId: SlackId, thread?: SlackTimestamp): PostableMessage {
-    return new PostableMessage(channelId || this.channel, thread || this.thread_ts, this.text, this.blocks, this.attachments);
-  }
-
-  withText(text: string) {
-    return new PostableMessage(this.channel, this.thread_ts, text || this.text, this.blocks, this.attachments);
+  with(channelId?: SlackId, thread?: SlackTimestamp): PostableMessage {
+    return new PostableMessage(this.text, channelId || this._channel, thread || this.thread_ts, this.blocks, this.attachments);
   }
 }

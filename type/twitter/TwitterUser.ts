@@ -20,7 +20,7 @@ export class TwitterUser {
       .string('profile_sidebar_fill_color', false)
       .string('profile_sidebar_border_color', false)
       .string(['profile_background_image_url_https', 'profile_background_image_url'], false)
-      .orLog();
+      .orThrow((message) => new Error(`Could not create TwitterUser: ${message}`));
   }
 
   // noinspection JSUnusedGlobalSymbols

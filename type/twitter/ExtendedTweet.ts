@@ -8,7 +8,7 @@ export class ExtendedTweet {
       .string('full_text')
       .obj('entities', TweetEntities, false)
       .list('display_text_range', 'number', false)
-      .orNull();
+      .orThrow((message) => new Error(`Could not create ExtendedTweet: ${message}`));
   }
 
   constructor(

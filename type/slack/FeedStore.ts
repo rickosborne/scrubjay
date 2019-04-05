@@ -20,7 +20,7 @@ export interface FeedStore {
 
   channelsFor(user: TwitterUser): Promise<FeedChannel[]>;
 
-  createFeed(channel: Channel): Promise<FeedChannel | null>;
+  createFeed(channel: Channel): Promise<FeedChannel>;
 
   follow(channel: Channel, user: TwitterUser): Promise<boolean>;
 

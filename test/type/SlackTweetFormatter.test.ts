@@ -59,7 +59,9 @@ describe('SlackTweetFormatter', () => {
               });
               break;
             case 'section':
-              texts.push(block.text.text);
+              if (block.text != null) {
+                texts.push(block.text.text);
+              }
           }
         });
       } else {

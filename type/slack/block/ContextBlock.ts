@@ -26,18 +26,22 @@ export class ContextBlock extends SlackBlock implements KnownBlockable {
   }
 
   public image(url: string, alt: string, callback: (image: ImageElement) => void): this {
-    return buildAndCall(new ImageElement(url, alt), this.elements, callback);
+    buildAndCall(new ImageElement(url, alt), this.elements, callback);
+    return this;
   }
 
   public markdown(text: string, verbatim: boolean, callback: (markdown: MarkdownTextBlock) => void): this {
-    return buildAndCall(new MarkdownTextBlock(text, verbatim), this.elements, callback);
+    buildAndCall(new MarkdownTextBlock(text, verbatim), this.elements, callback);
+    return this;
   }
 
   public plainText(text: string, emoji: boolean = false, callback: (plainText: PlainTextBlock) => void): this {
-    return buildAndCall(new PlainTextBlock(text, emoji), this.elements, callback);
+    buildAndCall(new PlainTextBlock(text, emoji), this.elements, callback);
+    return this;
   }
 
   public user(userId: SlackId, callback: (user: UserBlock) => void): this {
-    return buildAndCall(new UserBlock(userId), this.elements, callback);
+    buildAndCall(new UserBlock(userId), this.elements, callback);
+    return this;
   }
 }

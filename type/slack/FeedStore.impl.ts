@@ -44,7 +44,7 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
                INNER JOIN slack_feed_twitter AS sft ON (sft.slack_channel_id = sf.channel_id)
         ORDER BY sf.channel_name, sft.twitter_username
       `)
-      .fetch<ChannelAndFollowRow[]>()
+      .fetch<ChannelAndFollowRow>()
       .then((rows) => {
         if (rows == null || rows.length < 1) {
           return [];
@@ -80,7 +80,7 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
     `, [user.name]);
   }
 
-  public createFeed(channel: Channel): Promise<FeedChannel | null> {
+  public createFeed(channel: Channel): Promise<FeedChannel> {
     return new Promise((resolve, reject) => {
       this
         .query<[string, string]>(`
@@ -96,6 +96,9 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
   }
 
   public follow(channel: Channel, user: TwitterUser): Promise<boolean> {
+    if (user == null || user.name == null) {
+      return Promise.reject(new Error('User has no name'));
+    }
     return this
       .query<[string, string]>(`
         INSERT IGNORE INTO slack_feed_twitter (slack_channel_id, twitter_username)
@@ -107,7 +110,7 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
   }
 
   public followsFor(channel: FeedChannel | Channel): Promise<TwitterUser[]> {
-    return this.findObjects(TwitterUser, `
+    return this.findObjects<TwitterUser>(TwitterUser, `
       SELECT f.id, f.username, f.location, f.url, f.description, f.active
       FROM slack_feed_twitter AS sft
              INNER JOIN twitter_follow AS f ON (sft.twitter_username = f.username) AND (f.active = 1)

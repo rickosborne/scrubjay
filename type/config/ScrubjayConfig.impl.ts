@@ -4,6 +4,7 @@ import {buildFromObject} from '../FromObject';
 import {MysqlConfig} from './MysqlConfig';
 import {SlackConfig} from './SlackConfig';
 import {TwitterConfig, TwitterCredentials} from './TwitterConfig';
+import {boolish} from '../../lib/boolish';
 
 export class SlackConfigImpl implements SlackConfig {
   static fromObject(object: {}): SlackConfigImpl {
@@ -38,7 +39,7 @@ export class TwitterConfigImpl implements TwitterConfig {
       .string('accessTokenSecret')
       .string('consumerKey')
       .string('consumerSecret')
-      .orNull();
+      .orThrow((message) => new Error(`Could not build TwitterConfig: ${message}`));
   }
 
   constructor(
@@ -60,7 +61,7 @@ export class TwitterConfigImpl implements TwitterConfig {
 
   // noinspection JSMethodCanBeStatic
   public get connectStream(): boolean {
-    return env.param('TWITTER_STREAM', true, env.booleanDefaultTrue());
+    return env.param('TWITTER_STREAM', true, (s) => boolish(s, true));
   }
 }
 

@@ -16,7 +16,7 @@ export interface CommandSummary {
 }
 
 export interface OnMessageActions {
-  channel(name: string): Promise<Channel>;
+  channel(name: string): Promise<Channel | undefined>;
 
   reply(...messages: PostableMessage[]): Promise<void>;
 }

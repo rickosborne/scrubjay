@@ -12,9 +12,9 @@ import {TwitterConfig} from '../config/TwitterConfig';
 class TwitterClientImpl implements TwitterClient {
 
   private readonly _stream: boolean;
-  private stream: EventEmitter;
+  private stream?: EventEmitter;
   private readonly tweetCallbacks: TweetCallback[] = [];
-  private twitter: Twitter | undefined;
+  private readonly twitter?: Twitter;
   public readonly userIds: string[] = [];
   public readonly userNames: string[] = [];
 
@@ -28,7 +28,7 @@ class TwitterClientImpl implements TwitterClient {
   }
 
   public addUsers(...users: TwitterUser[]): this {
-    this.userNames.push(...users.map(user => user.name));
+    this.userNames.push(...users.map(user => user.name || '?'));
     env.debug(() => `Following: ${this.userNames.join(', ')}`);
     this.userIds.push(...users.map(user => '' + user.id));
     return this;
@@ -41,11 +41,14 @@ class TwitterClientImpl implements TwitterClient {
       this.stream.destroy();
     }
     let wait = backoff || 0;
-    if (backoff > 0) {
+    if ((backoff || 0) > 0) {
       env.debug(() => `Twitter client backoff: ${backoff}`);
     }
     if (this._stream) {
       setTimeout(() => {
+        if (this.twitter == null) {
+          throw new Error(`No twitter client`);
+        }
         env.debug('Twitter: connect');
         this.twitter.stream('statuses/filter', {
           follow: this.userIds.join(',')
@@ -57,7 +60,7 @@ class TwitterClientImpl implements TwitterClient {
             if (tweet != null) {
               env.debug(() => `@${tweet.user.name}: ${tweet.text.replace(/\s+/g, ' ')}`);
               wait = 0;
-              if (this.userNames.indexOf(tweet.user.name) >= 0) {
+              if (this.userNames.indexOf(tweet.user.name || '?') >= 0) {
                 logEvent = true;
                 this.tweetStore.store(tweet).catch(env.debugFailure('Unable to store tweet: '));
                 for (const callback of this.tweetCallbacks) {
@@ -85,6 +88,9 @@ class TwitterClientImpl implements TwitterClient {
   }
 
   fetchUser(name: string): Promise<TwitterUser> {
+    if (this.twitter == null) {
+      throw new Error(`No Twitter client to look up \`${name}\`.`);
+    }
     return this.twitter.get('users/show', {screen_name: name})
       .then(response => TwitterUser.fromObject(response));
   }
@@ -94,6 +100,9 @@ class TwitterClientImpl implements TwitterClient {
   }
 
   public recent(user: TwitterUser, count: number = 20): Promise<[Tweet, TweetJSON][]> {
+    if (this.twitter == null) {
+      throw new Error(`No Twitter client to fetch recent tweets.`);
+    }
     return this.twitter
       .get('statuses/user_timeline', {
         screen_name: user.name,

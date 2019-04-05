@@ -8,8 +8,8 @@ import {RenderOptions} from './SlackBot';
 
 export const FOLLOW_EMOJI_DEFAULT = 'bird';
 
-export interface TweetRenderingFlags {
-  followEmoji?: string;
+export interface TweetRenderingFlags extends RenderOptions {
+  followEmoji?: string | null;
   inReplyTo?: boolean;
   quoted?: boolean;
   retweeted?: boolean;

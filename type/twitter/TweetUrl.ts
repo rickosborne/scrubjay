@@ -9,7 +9,7 @@ export class TweetUrl implements Indexed {
       .string('display_url')
       .string('expanded_url')
       .list('indices', 'number')
-      .orNull();
+      .orThrow((message) => new Error(`Could not create TweetUrl: ${message}`));
   }
 
   constructor(

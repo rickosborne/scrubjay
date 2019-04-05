@@ -1,4 +1,4 @@
-export function boolish(value: any, defaultValue?: boolean): boolean {
+export function boolish(value: any, defaultValue: boolean): boolean {
   switch (typeof value) {
     case 'object':
       if (Array.isArray(value)) {
@@ -18,4 +18,5 @@ export function boolish(value: any, defaultValue?: boolean): boolean {
     case 'function':
       throw new Error(`Don't know how to booleanize: ${value.toString()}`);
   }
+  return defaultValue;
 }
