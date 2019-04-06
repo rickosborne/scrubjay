@@ -14,9 +14,6 @@ export function boolish(value: any, defaultValue: boolean): boolean {
       return value;
     case 'undefined':
       return defaultValue;
-    case 'symbol':
-    case 'function':
-      throw new Error(`Don't know how to booleanize: ${value.toString()}`);
   }
-  return defaultValue;
+  throw new Error(`Don't know how to booleanize: ${value.toString()}`);
 }

@@ -6,8 +6,8 @@ describe('FromObject', () => {
   describe('buildFromObject', () => {
     class Item {
       // noinspection JSUnusedGlobalSymbols
-      public static fromObject(object: {name: string}): Item {
-        return new Item(object.name);
+      public static fromObject(object: object): Item {
+        return new Item((object as {name: string}).name || '');
       }
 
       constructor(public readonly name: string) {}
@@ -30,7 +30,7 @@ describe('FromObject', () => {
 
     class TestableLogger implements EnvLogger {
       public readonly messages: string[] = [];
-      public message: string;
+      public message: string | undefined;
 
       debug(callback: () => string): void {
         const msg = callback();
@@ -54,9 +54,6 @@ describe('FromObject', () => {
 
     it('returns null for missing required params', () => {
       expect(buildFromObject(Mega, {}).string('str').orNull()).to.eq(null);
-    });
-    it('returns null for missing object', () => {
-      expect(buildFromObject(Mega, null).string('str').orNull()).to.eq(null);
     });
     it('returns null for bogus object', () => {
       expect(buildFromObject(Mega, 'foo').string('str').orNull()).to.eq(null);
@@ -94,10 +91,10 @@ describe('FromObject', () => {
       expect(mega.defaulted).to.equal('empty');
       expect(mega.strings).to.deep.equal(['foo', 'bar']);
       expect(mega.item).to.be.instanceOf(Item);
-      expect(mega.item.name).to.equal('baz');
-      expect(mega.items.length).to.equal(2);
-      expect(mega.items[0].name).to.equal('quux');
-      expect(mega.items[1].name).to.equal('zap');
+      expect(mega.item!.name).to.equal('baz');
+      expect(mega.items!.length).to.equal(2);
+      expect(mega.items![0].name).to.equal('quux');
+      expect(mega.items![1].name).to.equal('zap');
     });
     it('does not fail for lots of problems', () => {
       expect(completeBuild().orNull()).to.eq(null);

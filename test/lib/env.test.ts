@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
-import {Env, Logger} from '../../lib/env';
+import {Env} from '../../lib/env';
 import {buildFromObject} from '../../type/FromObject';
 import {PathLike} from 'fs';
 
@@ -98,6 +98,7 @@ describe('Env', () => {
 
   describe('fromJson', () => {
     class Testable {
+      // noinspection JSUnusedGlobalSymbols
       static fromObject(object: {}): Testable {
         return buildFromObject(Testable, object)
           .string('str')
@@ -109,7 +110,8 @@ describe('Env', () => {
     }
 
     it('works as expected', () => {
-      const testable = (new Env({}, null, null, {
+      // noinspection JSUnusedLocalSymbols
+      const testable = (new Env({}, undefined, undefined, {
         readFileSync(path: PathLike | number, options: { encoding: string; flag?: string } | string): string {
           return JSON.stringify({
             str: path,

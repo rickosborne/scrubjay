@@ -22,7 +22,7 @@ describe('unindent', () => {
   });
   describe('indentHanging', () => {
     it('always returns a string', () => {
-      expect(indentHanging(null, 2)).to.equal('');
+      expect(indentHanging('', 2)).to.equal('');
     });
     it('does what it says', () => {
       expect(indentHanging('foo\nbar\n  baz', 2)).to.equal('foo\n  bar\n    baz');

@@ -12,7 +12,7 @@ describe('trim', () => {
   it('trims both', () => {
     expect(trim(' abc  ')).to.equal('abc');
   });
-  it('returns empty string if null', () => {
-    expect(trim(null)).to.equal('');
+  it('returns empty string if empty string', () => {
+    expect(trim('')).to.equal('');
   });
 });

@@ -15,13 +15,13 @@ describe('boolish', () => {
       const label: string = typeof val === 'symbol' ? val.toString() : JSON.stringify(val);
       it(`sees <${typeof val}> ${label} as ${JSON.stringify(shouldBe)}`, () => {
         if (shouldBe === true) {
-          expect(boolish(val)).to.equal(true);
+          expect(boolish(val, true)).to.equal(true);
         } else if (shouldBe === false) {
-          expect(boolish(val)).to.equal(false);
+          expect(boolish(val, true)).to.equal(false);
         } else if (callback != null) {
-          callback(expect(() => boolish(val), typeof val));
+          callback(expect(() => boolish(val, true), typeof val));
         } else {
-          expect(boolish(val)).to.equal(undefined);
+          expect(boolish(val, true)).to.equal(true);
         }
       });
     }
@@ -30,5 +30,5 @@ describe('boolish', () => {
   testFn([1, '1', true, 't', 'true', 'y', 'yes', {a: 0}, [0]], true);
   testFn([0, '0', false, 'f', 'false', 'n', 'no', '', {}, []], false);
   testFn([Symbol('foo'), () => true], null, exp => exp.throws(/booleanize/i));
-  testFn([undefined], null, null);
+  testFn([undefined], null);
 });

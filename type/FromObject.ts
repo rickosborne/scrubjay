@@ -1,7 +1,7 @@
 import env from '../lib/env';
 
 export interface FromObject<T> {
-  fromObject: ({}) => T;
+  fromObject: (object: object) => T;
   name: string;
 }
 

@@ -10,8 +10,5 @@ export function unindent(s: string): string {
 }
 
 export function indentHanging(s: string, spaces: number): string {
-  if (s == null) {
-    return '';
-  }
   return s.replace(/\n/g, '\n' + ' '.repeat(spaces));
 }
