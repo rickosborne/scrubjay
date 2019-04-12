@@ -2,7 +2,7 @@ import {ScrubjayConfigStore} from './ScrubjayConfigStore';
 import {MysqlClient} from '../MysqlClient';
 import {FOLLOW_EMOJI_DEFAULT} from '../slack/SlackTweetFormatter';
 
-@ScrubjayConfigStore.provider
+@ScrubjayConfigStore.implementation
 export class ScrubjayConfigStoreImpl extends MysqlClient implements ScrubjayConfigStore {
   public get followEmoji(): Promise<string | undefined> {
     return this.valueForKey('follower_emoji', FOLLOW_EMOJI_DEFAULT);

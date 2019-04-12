@@ -26,7 +26,7 @@ class FeedChannelImpl implements FeedChannel {
   }
 }
 
-@FeedStore.provider
+@FeedStore.implementation
 class FeedStoreImpl extends MysqlClient implements FeedStore {
   public get channels(): Promise<FeedChannel[]> {
     return this.findObjects(FeedChannelImpl, `

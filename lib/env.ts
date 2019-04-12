@@ -37,8 +37,10 @@ export class Env {
   public debug(callback: string | AnySupplier, err: any = null) {
     if (this._debug) {
       const message = typeof callback === 'function' ? callback() : callback;
-      if (message != null) {
-        this.infoLogger(`${getTimeHHMMSS()} ${indentHanging(message, 9)}`);
+      // noinspection SuspiciousTypeOfGuard
+      const msg = typeof message === 'string' ? message : JSON.stringify(message, null, 2);
+      if (msg != null) {
+        this.infoLogger(`${getTimeHHMMSS()} ${indentHanging(msg, 9)}`);
       }
       if (err instanceof Error) {
         this.errorLogger(err.message);

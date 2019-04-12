@@ -8,7 +8,7 @@ import {TweetCallback, TwitterClient} from './TwitterClient';
 import {EventEmitter} from 'events';
 import {TwitterConfig} from '../config/TwitterConfig';
 
-@TwitterClient.provider
+@TwitterClient.implementation
 class TwitterClientImpl implements TwitterClient {
 
   private readonly _stream: boolean;

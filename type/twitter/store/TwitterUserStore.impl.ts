@@ -2,7 +2,7 @@ import {MysqlClient} from '../../MysqlClient';
 import {TwitterUser} from '../TwitterUser';
 import {TwitterUserStore} from './TwitterUserStore';
 
-@TwitterUserStore.provider
+@TwitterUserStore.implementation
 export class TwitterUserStoreImpl extends MysqlClient implements TwitterUserStore {
 
   public findOneByName(username: string): Promise<TwitterUser | null> {

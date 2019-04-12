@@ -87,7 +87,7 @@ const extractors: EntityExtractor<Indexed>[] = [
   },
 ];
 
-@SlackTweetFormatter.provider
+@SlackTweetFormatter.implementation
 export class SlackTweetFormatterImpl implements SlackTweetFormatter {
 
   protected adjustChunks(chunks: Chunk[], originalText: string): Chunk[] {

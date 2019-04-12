@@ -10,7 +10,7 @@ import {RTMConnectResult} from './RTMConnectResult';
 import {SlackId, SlackTimestamp} from './RTEvent';
 import {Eventually, EventuallyPostable, FromMessage, OnMessageActions, OnSlackMessage, Postable, SlackClient} from './SlackClient';
 
-@SlackClient.provider
+@SlackClient.implementation
 class SlackClientImpl implements SlackClient {
 
   private readonly oauth: string;

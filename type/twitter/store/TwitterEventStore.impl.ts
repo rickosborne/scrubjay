@@ -3,7 +3,7 @@ import {Tweet} from '../Tweet';
 import {TweetJSON, TwitterEventStore} from './TwitterEventStore';
 import env from '../../../lib/env';
 
-@TwitterEventStore.provider
+@TwitterEventStore.implementation
 class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
   findById(statusId: string): Promise<Tweet | null> {
     return this.findOneOrNull('(JSON_EXTRACT(`data`, \'$.id\') = ?) OR (JSON_EXTRACT(`data`, \'$.id_str\') = ?)',
