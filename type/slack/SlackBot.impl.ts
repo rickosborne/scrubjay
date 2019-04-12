@@ -4,7 +4,7 @@ import {SlackTweetFormatter} from './SlackTweetFormatter';
 import {TwitterUserStore} from '../twitter/store/TwitterUserStore';
 import {TweetStore} from '../twitter/store/TweetStore';
 import {TwitterEventStore} from '../twitter/store/TwitterEventStore';
-import {TwitterClient} from '../twitter/TwitterClient';
+import {TwitterClient, TwitterClientState} from '../twitter/TwitterClient';
 import {ScrubjayConfig} from '../config/ScrubjayConfig';
 import {Tweet} from '../twitter/Tweet';
 import {PostableMessage} from './PostableMessage';
@@ -12,10 +12,11 @@ import {TwitterUser} from '../twitter/TwitterUser';
 import env from '../../lib/env';
 import {RenderOptions, SlackBot} from './SlackBot';
 import {SlackBotCommand} from './SlackBotCommand';
-import {formatDurationMS, getLongDateTime} from '../../lib/time';
+import {formatDurationMS, getDateYYYYMMDD, getLongDateTime, getTimeHHMMSS} from '../../lib/time';
 import {ScrubjayConfigStore} from '../config/ScrubjayConfigStore';
 import {plural} from '../../lib/plural';
 import {DirectMessage} from './DirectMessage';
+import {NotifyQueue} from '../NotifyQueue';
 
 class CommandImpl implements SlackBotCommand {
 
@@ -94,6 +95,7 @@ export class SlackBotImpl implements SlackBot {
     private readonly twitterClient: TwitterClient,
     private readonly config: ScrubjayConfig,
     private readonly configStore: ScrubjayConfigStore,
+    private readonly notifyQueue: NotifyQueue,
   ) {
   }
 
@@ -120,10 +122,12 @@ export class SlackBotImpl implements SlackBot {
     @TwitterClient.required twitterClient: TwitterClient,
     @ScrubjayConfig.required config: ScrubjayConfig,
     @ScrubjayConfigStore.required configStore: ScrubjayConfigStore,
+    @NotifyQueue.required notifyQueue: NotifyQueue,
   ): SlackBot {
     const bot = new SlackBotImpl(
       slackClient, slackFeedStore, slackTweetFormatter,
-      twitterUserStore, tweetStore, twitterEventStore, twitterClient, config, configStore
+      twitterUserStore, tweetStore, twitterEventStore, twitterClient,
+      config, configStore, notifyQueue,
     );
     return bot.start();
   }
@@ -420,10 +424,34 @@ export class SlackBotImpl implements SlackBot {
               const userLinks = summary.followNames.map(name => this.slackTweetFormatter.userLink(name, followerEmoji)).join(' ');
               return `${channelLink}: ${userLinks}`;
             })
+            .concat([
+              `I have seen ${this.twitterClient.tweetsSinceLastConnect} tweets since my last reconnect.`,
+              this.twitterClient.state === TwitterClientState.CONNECTED && this.twitterClient.lastConnectedTime != null
+                ? `I've been connected to Twitter for ${formatDurationMS(Date.now() - this.twitterClient.lastConnectedTime.valueOf())}.`
+                : this.twitterClient.state === TwitterClientState.DISCONNECTED
+                ? `I'm not currently connected to Twitter.`
+                : `My Twitter client is currently: \`${this.twitterClient.state}\`.`,
+            ])
             .join('\n')
           )
         )
       )
+    );
+    this.command('notifications', 'Show the most recent notifications', notificationsCommand => notificationsCommand
+      .reply(() => {
+        return this.notifyQueue.recent.length === 0 ? `No recent notifications.`
+          : `Recent notifications: \`${this.notifyQueue.recent.length}\`:\n`
+          + ['```']
+            .concat(this.notifyQueue.recent.map(notification => {
+              const datePart = getDateYYYYMMDD(notification.time);
+              const timePart = getTimeHHMMSS(notification.time);
+              const messagePart = this.slackTweetFormatter.slackEscape(notification.message);
+              return `${datePart} ${timePart}: ${messagePart}`;
+            }))
+            .concat(['```'])
+            .join('\n')
+          ;
+      })
     );
     this.command('uptime', 'Time online since the last restart or upgrade', uptimeCommand => uptimeCommand
       .reply(() => `It's been ${this.uptime} since ${this.startTime}.`)
@@ -444,12 +472,7 @@ export class SlackBotImpl implements SlackBot {
       .start()
       .then(() => {
         env.debug(`Slack client online`);
-        this.configStore.notifyOnConnect.then((notify) => {
-          if (notify != null && notify.length > 0) {
-            this.send(PostableMessage.fromText(`Scrubjay \`${this.config.version}\` online.`, notify))
-              .catch(env.debugFailure('Could not notify of online status'));
-          }
-        });
+        this.notifyQueue.put(`Scrubjay \`${this.config.version}\` online.`);
       });
     return this;
   }

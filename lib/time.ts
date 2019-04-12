@@ -43,6 +43,10 @@ export function getDateDDMMMYYYY(date: Date = new Date()) {
   return `${fixed(date.getDate())} ${month} ${date.getFullYear()}`;
 }
 
+export function getDateYYYYMMDD(date: Date = new Date()) {
+  return `${fixed(date.getFullYear())}-${fixed(date.getMonth() + 1)}-${fixed(date.getDate())}`;
+}
+
 export function getLongDateTime(date: Date = new Date()): string {
   const weekday = WEEKDAYS[date.getDay()];
   const dt = getDateDDMMMYYYY(date);

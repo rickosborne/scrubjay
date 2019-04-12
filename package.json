@@ -8,6 +8,7 @@
     "inclined-plane": "^0.5.1",
     "mysql2": "^1.6.5",
     "node-fetch": "^2.3.0",
+    "rxjs": "^6.4.0",
     "twitter": "^1.7.1"
   },
   "devDependencies": {

@@ -9,6 +9,8 @@ import {trim} from '../../lib/trim';
 import {RTMConnectResult} from './RTMConnectResult';
 import {SlackId, SlackTimestamp} from './RTEvent';
 import {Eventually, EventuallyPostable, FromMessage, OnMessageActions, OnSlackMessage, Postable, SlackClient} from './SlackClient';
+import {NotifyQueue} from '../NotifyQueue';
+import {ScrubjayConfigStore} from '../config/ScrubjayConfigStore';
 
 @SlackClient.implementation
 class SlackClientImpl implements SlackClient {
@@ -19,10 +21,18 @@ class SlackClientImpl implements SlackClient {
   private readonly web: WebClient;
 
   constructor(
-    @SlackConfig.required cfg: SlackConfig
+    @SlackConfig.required cfg: SlackConfig,
+    @NotifyQueue.required notifyQueue: NotifyQueue,
+    @ScrubjayConfigStore.required configStore: ScrubjayConfigStore,
   ) {
     this.oauth = cfg.botOAuth;
     this.web = new WebClient(this.oauth);
+    notifyQueue.subscribe(async (notification) => {
+      const channel = await configStore.notifyOnConnect;
+      if (channel != null) {
+        await this.send(PostableMessage.fromText(notification.message, channel));
+      }
+    });
   }
 
   // noinspection JSUnusedLocalSymbols
@@ -82,7 +92,7 @@ class SlackClientImpl implements SlackClient {
   public replier(messageSupplier: EventuallyPostable, thread: boolean = false): OnSlackMessage {
     return (message, actions, ...args) => {
       this.resolve(messageSupplier, message, ...args).then(text => {
-        if (text != null) {
+        if (text != null && text !== '') {
           actions.reply(...this.toPostables(text, message.channel, thread ? message.ts : undefined))
             .catch(env.debugFailure('Could not deliver reply'));
         }

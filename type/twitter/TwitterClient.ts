@@ -5,7 +5,20 @@ import {TweetJSON} from './store/TwitterEventStore';
 
 export type TweetCallback = (tweet: Tweet) => void;
 
+export enum TwitterClientState {
+  DISCONNECTED = 'disconnected',
+  BACKOFF = 'backoff',
+  CONNECTING = 'connecting',
+  CONNECTED = 'connected',
+}
+
 export interface TwitterClient {
+
+  lastConnectedTime: Date | undefined;
+
+  state: TwitterClientState;
+
+  tweetsSinceLastConnect: number;
 
   addUsers(...users: TwitterUser[]): this;
 

@@ -4,9 +4,10 @@ import * as Twitter from 'twitter';
 import {TwitterUser} from './TwitterUser';
 import env from '../../lib/env';
 import {Tweet} from './Tweet';
-import {TweetCallback, TwitterClient} from './TwitterClient';
+import {TweetCallback, TwitterClient, TwitterClientState} from './TwitterClient';
 import {EventEmitter} from 'events';
 import {TwitterConfig} from '../config/TwitterConfig';
+import {NotifyQueue} from '../NotifyQueue';
 
 @TwitterClient.implementation
 class TwitterClientImpl implements TwitterClient {
@@ -22,9 +23,28 @@ class TwitterClientImpl implements TwitterClient {
     @TwitterConfig.required config: TwitterConfig,
     @TwitterEventStore.required private readonly twitterEventStore: TwitterEventStore,
     @TweetStore.required private readonly tweetStore: TweetStore,
+    @NotifyQueue.required private readonly notifyQueue: NotifyQueue,
   ) {
     this.twitter = new Twitter(config.credentials);
     this._stream = config.connectStream;
+  }
+
+  private _lastConnectedTime: Date | undefined;
+
+  public get lastConnectedTime(): Date | undefined {
+    return this._lastConnectedTime;
+  }
+
+  private _state: TwitterClientState = TwitterClientState.DISCONNECTED;
+
+  public get state(): TwitterClientState {
+    return this._state;
+  }
+
+  private _tweetsSinceLastConnect = 0;
+
+  public get tweetsSinceLastConnect(): number {
+    return this._tweetsSinceLastConnect;
   }
 
   public addUsers(...users: TwitterUser[]): this {
@@ -39,45 +59,61 @@ class TwitterClientImpl implements TwitterClient {
     if (this.stream != null && (typeof this.stream['destroy'] === 'function')) {
       // @ts-ignore
       this.stream.destroy();
+      this._state = TwitterClientState.DISCONNECTED;
     }
     let wait = backoff || 0;
     if ((backoff || 0) > 0) {
-      env.debug(() => `Twitter client backoff: ${backoff}`);
+      const backoffMessage = `Twitter client backoff: ${backoff}`;
+      env.debug(() => backoffMessage);
+      this.notifyQueue.put(backoffMessage);
     }
     if (this._stream) {
+      this._state = TwitterClientState.BACKOFF;
       setTimeout(() => {
+        this._state = TwitterClientState.CONNECTING;
         if (this.twitter == null) {
           throw new Error(`No twitter client`);
         }
-        env.debug('Twitter: connect');
+        const connectMessage = 'Twitter: connect';
+        env.debug(connectMessage);
+        this.notifyQueue.put(connectMessage);
         this.twitter.stream('statuses/filter', {
           follow: this.userIds.join(',')
         }, stream => {
+          this._state = TwitterClientState.CONNECTED;
           this.stream = stream;
+          this._tweetsSinceLastConnect = 0;
+          this._lastConnectedTime = new Date();
           stream.on('data', maybeTweet => {
-            let logEvent = false;
-            const tweet = Tweet.fromObject(maybeTweet);
-            if (tweet != null) {
-              env.debug(() => `@${tweet.user.name}: ${tweet.text.replace(/\s+/g, ' ')}`);
-              wait = 0;
-              if (this.userNames.indexOf(tweet.user.name || '?') >= 0) {
-                logEvent = true;
-                this.tweetStore.store(tweet).catch(env.debugFailure('Unable to store tweet: '));
-                for (const callback of this.tweetCallbacks) {
-                  callback(tweet);
+            try {
+              let logEvent = false;
+              const tweet = Tweet.fromObject(maybeTweet);
+              if (tweet != null) {
+                this._tweetsSinceLastConnect++;
+                env.debug(() => `@${tweet.user.name}: ${tweet.text.replace(/\s+/g, ' ')}`);
+                wait = 0;
+                if (this.userNames.indexOf(tweet.user.name || '?') >= 0) {
+                  logEvent = true;
+                  this.tweetStore.store(tweet).catch(env.debugFailure('Unable to store tweet: '));
+                  for (const callback of this.tweetCallbacks) {
+                    callback(tweet);
+                  }
                 }
+              } else {
+                logEvent = true;
+                env.debug(() => `Not a tweet: ${JSON.stringify(maybeTweet)}`);
               }
-            } else {
-              logEvent = true;
-              env.debug(() => `Not a tweet: ${JSON.stringify(maybeTweet)}`);
-            }
-            if (logEvent) {
-              env.debug(maybeTweet);
-              this.twitterEventStore.save(maybeTweet);
+              if (logEvent) {
+                env.debug(maybeTweet);
+                this.twitterEventStore.save(maybeTweet);
+              }
+            } catch (e) {
+              this.notifyQueue.put(`Twitter stream caught: ${e.message}`);
             }
           });
           stream.on('error', err => {
             env.debug('Twitter stream error', err);
+            this.notifyQueue.put(`Twitter stream error: `, err);
             this.connect(wait === 0 ? 2000 : Math.min(30000, wait * 2));  // reconnect
           });
         });

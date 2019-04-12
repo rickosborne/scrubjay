@@ -1,5 +1,6 @@
 import 'inclined-plane';
 import './MysqlClient';
+import './NotifyQueue.impl';
 import './config/ScrubjayConfig.impl';
 import './config/ScrubjayConfigStore.impl';
 import './slack/FeedStore.impl';

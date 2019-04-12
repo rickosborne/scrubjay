@@ -110,5 +110,10 @@
       "check-separator",
       "check-type"
     ]
+  },
+  "linterOptions": {
+    "exclude": [
+      "**/*.test.ts"
+    ]
   }
 }
