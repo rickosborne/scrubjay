@@ -11,6 +11,7 @@ import {SlackId, SlackTimestamp} from './RTEvent';
 import {Eventually, EventuallyPostable, FromMessage, OnMessageActions, OnSlackMessage, Postable, SlackClient} from './SlackClient';
 import {NotifyQueue} from '../NotifyQueue';
 import {ScrubjayConfigStore} from '../config/ScrubjayConfigStore';
+import {LogSwitch} from '../Logger';
 
 @SlackClient.implementation
 class SlackClientImpl implements SlackClient {
@@ -24,6 +25,7 @@ class SlackClientImpl implements SlackClient {
     @SlackConfig.required cfg: SlackConfig,
     @NotifyQueue.required notifyQueue: NotifyQueue,
     @ScrubjayConfigStore.required configStore: ScrubjayConfigStore,
+    @LogSwitch.required logSwitch: LogSwitch,
   ) {
     this.oauth = cfg.botOAuth;
     this.web = new WebClient(this.oauth);
@@ -32,6 +34,9 @@ class SlackClientImpl implements SlackClient {
       if (channel != null) {
         await this.send(PostableMessage.fromText(notification.message, channel));
       }
+    });
+    logSwitch.onError((message, optionalParams) => {
+      notifyQueue.put(message, optionalParams);
     });
   }
 

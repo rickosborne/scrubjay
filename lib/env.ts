@@ -1,30 +1,23 @@
-import * as process from 'process';
-import * as fs from 'fs';
 import {FromObject} from '../type/FromObject';
 import {getTimeHHMMSS} from './time';
 import {indentHanging} from './unindent';
 import {obtain, Obtainable} from '../type/Obtainable';
 import {boolish} from './boolish';
-import {PathLike} from 'fs';
+import {LogSwitch} from '../type/Logger';
+import {FileSystemAbstraction} from '../type/FileSystemAbstraction';
+import {Environment} from '../type/Environment';
+import {buildInstance} from 'inclined-plane';
+import '../type/LogSwitch.impl';
 
 type AnySupplier = () => any;
-export type Logger = (message?: any, ...optionalParams: any[]) => void;
-interface Environment {
-  [key: string]: any;
-}
-
-interface FileSystemAbstraction {
-  readFileSync(path: PathLike | number, options: { encoding: string; flag?: string; } | string): string;
-}
 
 export class Env {
   private readonly _debug: boolean;
 
   constructor(
-    private readonly _env: Environment = {},
-    public readonly infoLogger: Logger = console.log,
-    public readonly errorLogger: Logger = console.error,
-    private _fs: FileSystemAbstraction = fs
+    @LogSwitch.required private readonly logSwitch: LogSwitch,
+    @Environment.required private readonly environment: Environment,
+    @FileSystemAbstraction.required private readonly filesystem: FileSystemAbstraction,
   ) {
     this._debug = this.param('DEBUG', false, v => boolish(v, false))
       || this.param('NODE_DEBUG', false, v => boolish(v, false));
@@ -40,11 +33,11 @@ export class Env {
       // noinspection SuspiciousTypeOfGuard
       const msg = typeof message === 'string' ? message : JSON.stringify(message, null, 2);
       if (msg != null) {
-        this.infoLogger(`${getTimeHHMMSS()} ${indentHanging(msg, 9)}`);
+        this.logSwitch.info(`${getTimeHHMMSS()} ${indentHanging(msg, 9)}`);
       }
       if (err instanceof Error) {
-        this.errorLogger(err.message);
-        this.errorLogger(err.stack);
+        this.logSwitch.error(err.message);
+        this.logSwitch.error(err.stack);
       }
     }
   }
@@ -55,7 +48,7 @@ export class Env {
 
   // noinspection JSMethodCanBeStatic
   public fromJson<T = {}>(path: string, type?: FromObject<T> | null): T {
-    const object = JSON.parse(this._fs.readFileSync(path, {encoding: 'utf8'}));
+    const object = JSON.parse(this.filesystem.readFileSync(path, {encoding: 'utf8'}));
     return type == null ? object : type.fromObject(object);
   }
 
@@ -65,7 +58,7 @@ export class Env {
     converter: (s: string) => T = (s) => <T>(<unknown>s),
     thisArg: {} | undefined | null = null,
   ): T {
-    const value = this._env[name];
+    const value = this.environment[name];
     if (value == null) {
       if (defaultValue === null || defaultValue === undefined) {
         throw new Error(`Missing required parameter: ${name}`);
@@ -91,5 +84,5 @@ export class Env {
   }
 }
 
-const env = new Env(process.env, console.log, console.error, fs);
+const env = buildInstance(Env);
 export default env;

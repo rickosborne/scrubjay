@@ -3,6 +3,25 @@ import {describe, it} from 'mocha';
 import {Env} from '../../lib/env';
 import {buildFromObject} from '../../type/FromObject';
 import {PathLike} from 'fs';
+import {LogSwitch} from '../../type/Logger';
+import {FileSystemAbstraction} from '../../type/FileSystemAbstraction';
+
+const noopLogSwitch: LogSwitch = {
+  info: () => {
+  },
+  error: () => {
+  },
+  onError: () => {
+  },
+  onInfo: () => {
+  },
+};
+
+const noopFileSystem: FileSystemAbstraction = {
+  appendFile: () => {
+  },
+  readFileSync: () => '',
+};
 
 describe('Env', () => {
   describe('constructor', () => {
@@ -18,7 +37,7 @@ describe('Env', () => {
         for (const value of vals) {
           const label: string = typeof value === 'symbol' ? value.toString() : JSON.stringify(value);
           it(`reads ${key} = <${typeof value}> ${label}`, () => {
-            callback(expect((new Env({[key]: value})).isDebug));
+            callback(expect((new Env(noopLogSwitch, {[key]: value}, noopFileSystem)).isDebug));
           });
         }
       }
@@ -29,7 +48,7 @@ describe('Env', () => {
   });
 
   describe('readable', () => {
-    const env = new Env();
+    const env = new Env(noopLogSwitch, {}, noopFileSystem);
     it('handles null', () => {
       expect(env.readable(null)).to.equal('<null>');
     });
@@ -49,38 +68,59 @@ describe('Env', () => {
 
   describe('param', () => {
     it('throws if needed', () => {
-      expect(() => (new Env()).param('foo')).throws(/Missing required parameter: foo/);
+      expect(() => (new Env(noopLogSwitch, {}, noopFileSystem)).param('foo')).throws(/Missing required parameter: foo/);
     });
     it('finds params', () => {
-      expect((new Env({FOO: 123})).param('FOO')).to.equal(123);
+      expect((new Env(noopLogSwitch, {FOO: 123}, noopFileSystem)).param('FOO')).to.equal(123);
     });
     it('uses default values', () => {
-      expect((new Env({})).param('FOO', '456')).to.equal('456');
+      expect((new Env(noopLogSwitch, {}, noopFileSystem)).param('FOO', '456')).to.equal('456');
     });
     it('uses the converter', () => {
-      expect((new Env({'FOO': 123})).param('FOO', 456, v => parseInt(v, 10))).to.equal(123);
+      expect((new Env(noopLogSwitch, {'FOO': 123}, noopFileSystem)).param('FOO', 456, v => parseInt(v, 10))).to.equal(123);
     });
   });
 
   describe('debug', () => {
-    it ('does not log if not debug', () => {
+    it('does not log if not debug', () => {
       const info: string[] = [];
       const err: string[] = [];
-      expect(() => (new Env({}, msg => info.push(msg), msg => err.push(msg))).debug(`foo`))
+      expect(() => (new Env({
+        info: msg => info.push(msg),
+        error: msg => err.push(msg),
+        onInfo: () => {
+        },
+        onError: () => {
+        },
+      }, {}, noopFileSystem)).debug(`foo`))
         .to.not.increase(info, 'length')
         .and.not.increase(err, 'length');
     });
-    it ('does log if debug', () => {
+    it('does log if debug', () => {
       const info: string[] = [];
       const err: string[] = [];
-      expect(() => (new Env({DEBUG: 1}, msg => info.push(msg), msg => err.push(msg))).debug(`foo`))
+      expect(() => (new Env({
+        info: msg => info.push(msg),
+        error: msg => err.push(msg),
+        onInfo: () => {
+        },
+        onError: () => {
+        },
+      }, {DEBUG: 1}, noopFileSystem)).debug(`foo`))
         .to.increase(info, 'length')
         .and.not.increase(err, 'length');
     });
-    it ('does log errors if present', () => {
+    it('does log errors if present', () => {
       const info: string[] = [];
       const err: string[] = [];
-      expect(() => (new Env({DEBUG: 1}, msg => info.push(msg), msg => err.push(msg))).debug(`foo`, new Error('bar')))
+      expect(() => (new Env({
+        info: msg => info.push(msg),
+        error: msg => err.push(msg),
+        onInfo: () => {
+        },
+        onError: () => {
+        },
+      }, {DEBUG: 1}, noopFileSystem)).debug(`foo`, new Error('bar')))
         .to.increase(info, 'length')
         .and.increase(err, 'length');
     });
@@ -90,7 +130,14 @@ describe('Env', () => {
     it('does what it says on the tin', () => {
       const info: string[] = [];
       const err: string[] = [];
-      expect(() => (new Env({DEBUG: 1}, msg => info.push(msg))).debugFailure('Some prefix')('foo'))
+      expect(() => (new Env({
+        info: msg => info.push(msg),
+        error: msg => err.push(msg),
+        onInfo: () => {
+        },
+        onError: () => {
+        },
+      }, {DEBUG: 1}, noopFileSystem)).debugFailure('Some prefix')('foo'))
         .to.increase(info, 'length')
         .and.not.increase(err, 'length');
     });
@@ -106,12 +153,14 @@ describe('Env', () => {
           .orThrow(msg => new Error(`Could not build: ${msg}`));
       }
 
-      constructor(public readonly str: string, public readonly num: number) {}
+      constructor(public readonly str: string, public readonly num: number) {
+      }
     }
 
     it('works as expected', () => {
       // noinspection JSUnusedLocalSymbols
-      const testable = (new Env({}, undefined, undefined, {
+      const testable = (new Env(noopLogSwitch, {}, {
+        appendFile: () => {},
         readFileSync(path: PathLike | number, options: { encoding: string; flag?: string } | string): string {
           return JSON.stringify({
             str: path,

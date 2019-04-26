@@ -1,10 +1,11 @@
 import * as mysql2 from 'mysql2/promise';
-import env, {Logger} from '../lib/env';
+import env from '../lib/env';
 import {FromObject} from './FromObject';
 import {unindent} from '../lib/unindent';
 import * as mysql from 'mysql';
 import {MysqlConfig} from './config/MysqlConfig';
 import {injectableType} from 'inclined-plane';
+import {Logger} from './Logger';
 
 export type QueryResultType = mysql2.RowDataPacket[] | mysql2.OkPacket | mysql2.RowDataPacket[][] | mysql2.OkPacket[];
 export type Mysql2QueryResult = [QueryResultType, mysql2.FieldPacket[]];

@@ -2,7 +2,8 @@ import {expect} from 'chai';
 import {describe, it} from 'mocha';
 import {Mysql2QueryResult, MysqlAdapter, MysqlClient} from '../../type/MysqlClient';
 import * as mysql2 from 'mysql2/promise';
-import env, {Logger} from '../../lib/env';
+import env from '../../lib/env';
+import {Logger} from '../../type/Logger';
 
 describe('MysqlClient', () => {
   const mockConnection: mysql2.Connection = <mysql2.Connection>{};
