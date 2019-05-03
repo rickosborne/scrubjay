@@ -1,4 +1,4 @@
-import {RTMClient, WebAPICallResult, WebClient} from '@slack/client';
+import {LogLevel, RTMClient, WebAPICallResult, WebClient} from '@slack/client';
 import {SlackConfig} from '../config/SlackConfig';
 import {DirectMessage} from './DirectMessage';
 import {PostableMessage} from './PostableMessage';
@@ -12,6 +12,7 @@ import {Eventually, EventuallyPostable, FromMessage, OnMessageActions, OnSlackMe
 import {NotifyQueue} from '../NotifyQueue';
 import {ScrubjayConfigStore} from '../config/ScrubjayConfigStore';
 import {LogSwitch} from '../Logger';
+import {retryForeverExponentialCappedRandom} from '@slack/client/dist/retry-policies';
 
 @SlackClient.implementation
 class SlackClientImpl implements SlackClient {
@@ -25,7 +26,7 @@ class SlackClientImpl implements SlackClient {
     @SlackConfig.required cfg: SlackConfig,
     @NotifyQueue.required notifyQueue: NotifyQueue,
     @ScrubjayConfigStore.required configStore: ScrubjayConfigStore,
-    @LogSwitch.required logSwitch: LogSwitch,
+    @LogSwitch.required private readonly logSwitch: LogSwitch,
   ) {
     this.oauth = cfg.botOAuth;
     this.web = new WebClient(this.oauth);
@@ -151,17 +152,44 @@ class SlackClientImpl implements SlackClient {
       });
   }
 
-  public async start(): Promise<void> {
+  public async start(backoff: number = 0): Promise<void> {
     if (this.rtm != null) {
       await this.rtm.disconnect();
       this.rtm = null;
     }
-    this.rtm = new RTMClient(this.oauth);
+    let loggerName = 'Slack RTMClient';
+    this.rtm = new RTMClient(this.oauth, {
+      autoReconnect: true,
+      retryConfig: retryForeverExponentialCappedRandom,
+      useRtmConnect: true,
+      logLevel: LogLevel.WARN,
+      logger: {
+        debug: (msg): void => {},
+        error: (msg): void => this.logSwitch.error(`${loggerName} ${env.readable(msg)}`),
+        info: (msg): void => this.logSwitch.info(`${loggerName} ${env.readable(msg)}`),
+        setLevel: (level: LogLevel): void => {},
+        setName: (name: string): void => { loggerName = name; },
+        warn: (msg): void => this.logSwitch.error(`${loggerName} ${env.readable(msg)}`),
+      },
+    });
     this.rtm.on('message', this.messageHandler.bind(this));
+    this.rtm.on('open', () => env.debug('Slack RTMClient open'));
+    this.rtm.on('close', () => env.debug('Slack RTMClient close'));
+    this.rtm.on('error', (args) => env.debug(`Slack RTMClient error ${env.readable(args)}`));
     return this.rtm.start().then((rtmResult: RTMConnectResult) => {
       env.debug(() => rtmResult);
       if (!rtmResult.ok) {
         throw new Error(`Could not connect to RTM`);
+      }
+    }).catch((reason) => {
+      env.debug(`Slack RTMClient error: ${env.readable(reason)}`);
+      const rtm = this.rtm;
+      if (rtm != null) {
+        this.rtm = null;
+        const wait = (backoff * 2) + Math.floor(2000 * Math.random());
+        rtm.disconnect().finally(() => {
+          setTimeout(() => this.start(wait), wait);
+        });
       }
     });
   }

@@ -71,13 +71,15 @@ export class Env {
   }
 
   // noinspection JSMethodCanBeStatic
-  public readable(obj: any): string {
+  public readable(obj: any): string | number {
     if (obj == null) {
       return '<null>';
     } else if (obj instanceof Error) {
       return `${obj.name}: ${obj.message}`;
-    } else if (['string', 'number'].indexOf(typeof obj) >= 0) {
-      return '' + obj;
+    } else if (typeof obj === 'number' || typeof obj === 'string') {
+      return obj;
+    } else if (Array.isArray(obj)) {
+      return JSON.stringify(obj.map(item => this.readable(item)), null, 2);
     } else {
       return JSON.stringify(obj, null, 2);
     }

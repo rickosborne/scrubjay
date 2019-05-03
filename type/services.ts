@@ -1,5 +1,5 @@
 import 'inclined-plane';
-import './FileLogger.impl';
+// import './FileLogger.impl';
 import './LogSwitch.impl';
 import './MysqlClient';
 import './NotifyQueue.impl';

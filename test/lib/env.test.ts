@@ -56,7 +56,7 @@ describe('Env', () => {
       expect(env.readable(new Error('some error message'))).to.equal('Error: some error message');
     });
     it('handles numbers', () => {
-      expect(env.readable(123)).to.equal('123');
+      expect(env.readable(123)).to.equal(123);
     });
     it('handles strings', () => {
       expect(env.readable('1.23')).to.equal('1.23');

@@ -85,6 +85,30 @@ function regexify(stringOrPattern: string | RegExp): RegExp {
 // noinspection JSUnusedGlobalSymbols
 export class SlackBotImpl implements SlackBot {
 
+  @SlackBot.supplier
+  public static getInstance(
+    @SlackClient.required slackClient: SlackClient,
+    @FeedStore.required slackFeedStore: FeedStore,
+    @SlackTweetFormatter.required slackTweetFormatter: SlackTweetFormatter,
+    @TwitterUserStore.required twitterUserStore: TwitterUserStore,
+    @TweetStore.required tweetStore: TweetStore,
+    @TwitterEventStore.required twitterEventStore: TwitterEventStore,
+    @TwitterClient.required twitterClient: TwitterClient,
+    @ScrubjayConfig.required config: ScrubjayConfig,
+    @ScrubjayConfigStore.required configStore: ScrubjayConfigStore,
+    @NotifyQueue.required notifyQueue: NotifyQueue,
+  ): SlackBot {
+    const bot = new SlackBotImpl(
+      slackClient, slackFeedStore, slackTweetFormatter,
+      twitterUserStore, tweetStore, twitterEventStore, twitterClient,
+      config, configStore, notifyQueue,
+    );
+    return bot.start();
+  }
+
+  private readonly _startTime: Date = new Date();
+  private readonly commands: SlackBotCommand[] = [];
+
   protected constructor(
     private readonly slackClient: SlackClient,
     private readonly slackFeedStore: FeedStore,
@@ -106,30 +130,6 @@ export class SlackBotImpl implements SlackBot {
   public get uptime(): string {
     const elapsedMS = (new Date()).valueOf() - this._startTime.valueOf();
     return formatDurationMS(elapsedMS);
-  }
-
-  private readonly _startTime: Date = new Date();
-  private readonly commands: SlackBotCommand[] = [];
-
-  @SlackBot.supplier
-  public static getInstance(
-    @SlackClient.required slackClient: SlackClient,
-    @FeedStore.required slackFeedStore: FeedStore,
-    @SlackTweetFormatter.required slackTweetFormatter: SlackTweetFormatter,
-    @TwitterUserStore.required twitterUserStore: TwitterUserStore,
-    @TweetStore.required tweetStore: TweetStore,
-    @TwitterEventStore.required twitterEventStore: TwitterEventStore,
-    @TwitterClient.required twitterClient: TwitterClient,
-    @ScrubjayConfig.required config: ScrubjayConfig,
-    @ScrubjayConfigStore.required configStore: ScrubjayConfigStore,
-    @NotifyQueue.required notifyQueue: NotifyQueue,
-  ): SlackBot {
-    const bot = new SlackBotImpl(
-      slackClient, slackFeedStore, slackTweetFormatter,
-      twitterUserStore, tweetStore, twitterEventStore, twitterClient,
-      config, configStore, notifyQueue,
-    );
-    return bot.start();
   }
 
   public command(
@@ -452,6 +452,23 @@ export class SlackBotImpl implements SlackBot {
             .join('\n')
           ;
       })
+    );
+    this.command('reconnect', undefined, reconnectCommand => reconnectCommand
+      .subcommand('twitter', 'Reconnect the Twitter client', reconnectTwitter => reconnectTwitter
+        .reply(() => {
+          this.twitterClient.connect();
+          return 'Restarting Twitter client.';
+        }))
+      .subcommand('slack', 'Reconnect the Slack RTM client', reconnectSlack => reconnectSlack
+        .reply((message, actions) => {
+          setTimeout(() => {
+            this.slackClient.start().then(() => actions
+              .reply(PostableMessage.fromText('Restarted Slack RTM client.', message.channel))
+              .catch(env.debugFailure('Failed to restart Slack RTM client.'))
+            );
+          }, 1000);
+          return 'Restarting Slack client.';
+        }))
     );
     this.command('uptime', 'Time online since the last restart or upgrade', uptimeCommand => uptimeCommand
       .reply(() => `It's been ${this.uptime} since ${this.startTime}.`)

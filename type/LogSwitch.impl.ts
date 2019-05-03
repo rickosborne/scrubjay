@@ -7,21 +7,22 @@ export class LogSwitchImpl implements LogSwitch {
   private readonly onInfos: Logger[] = [console.info];
 
   private static log(loggers: Logger[], message?: any, ...optionalParams: any[]) {
+    const opts = Array.isArray(optionalParams) && optionalParams.length > 0 ? optionalParams : undefined;
     for (const logger of loggers) {
       try {
-        logger(message, optionalParams);
+        opts == null ? logger(message) : logger(message, opts);
       } catch (e) {
-        console.log(message, optionalParams);
+        opts == null ? console.log(message) : console.log(message, opts);
       }
     }
   }
 
   public error(message?: any, ...optionalParams: any[]) {
-    LogSwitchImpl.log(this.onErrors, message, optionalParams);
+    LogSwitchImpl.log(this.onErrors, message, ...optionalParams);
   }
 
   public info(message?: any, ...optionalParams: any[]) {
-    LogSwitchImpl.log(this.onInfos, message, optionalParams);
+    LogSwitchImpl.log(this.onInfos, message, ...optionalParams);
   }
 
   onError(logger: Logger): void {
