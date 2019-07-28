@@ -1,6 +1,6 @@
 import {AccessoryElement} from './AccessoryElement';
 import {PlainTextBlock} from './PlainTextBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 import {ConfirmationBlock} from './ConfirmationBlock';
 
 export class ButtonElement extends AccessoryElement {

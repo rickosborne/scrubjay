@@ -1,4 +1,4 @@
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 import {KnownBlockable} from './block/SlackBlock';
 import {ContextBlock} from './block/ContextBlock';
 import {TextBlock} from './block/TextBlock';

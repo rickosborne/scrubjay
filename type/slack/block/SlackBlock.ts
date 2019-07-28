@@ -1,4 +1,4 @@
-import {KnownBlock} from '@slack/client';
+import {KnownBlock} from '@slack/web-api';
 
 export abstract class SlackBlock {
   protected constructor(

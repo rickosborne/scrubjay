@@ -1,6 +1,6 @@
 import {KnownBlockable, SlackBlock} from './SlackBlock';
 import {TextBlock} from './TextBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 import {AccessoryElement} from './AccessoryElement';
 
 export class SectionBlock extends SlackBlock implements KnownBlockable {

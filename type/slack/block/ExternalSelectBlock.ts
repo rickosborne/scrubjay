@@ -2,7 +2,7 @@ import {SelectBlock} from './SelectBlock';
 import {PlainTextBlock} from './PlainTextBlock';
 import {OptionBlock} from './OptionBlock';
 import {ConfirmationBlock} from './ConfirmationBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class ExternalSelectBlock extends SelectBlock {
   static readonly TYPE = 'external_select';

@@ -1,7 +1,7 @@
 import {SlackBlock} from './SlackBlock';
 import {PlainTextBlock} from './PlainTextBlock';
 import {TextBlock} from './TextBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class ConfirmationBlock extends SlackBlock {
   static readonly TYPE = 'confirm';

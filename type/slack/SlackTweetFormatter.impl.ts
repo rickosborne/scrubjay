@@ -7,7 +7,7 @@ import {TweetEntities} from '../twitter/TweetEntities';
 import {getLongDateTime} from '../../lib/time';
 import {PostableMessage} from './PostableMessage';
 import {KnownBlockable} from './block/SlackBlock';
-import * as slack from '@slack/client';
+import * as slack from '@slack/web-api';
 import {DelayedRenderActions, FOLLOW_EMOJI_DEFAULT, SlackTweetFormatter, TweetRenderingFlags} from './SlackTweetFormatter';
 import {TweetHashtag} from '../twitter/TweetHashtag';
 import {TweetUrl} from '../twitter/TweetUrl';

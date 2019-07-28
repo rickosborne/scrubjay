@@ -1,7 +1,7 @@
 import {SelectBlock} from './SelectBlock';
 import {OptionBlock} from './OptionBlock';
 import {ConfirmationBlock} from './ConfirmationBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class OverflowSelectBlock extends SelectBlock {
   static readonly OPTIONS_MAX = 5;

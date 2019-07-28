@@ -1,5 +1,5 @@
 import {AccessoryElement} from './AccessoryElement';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class ImageElement extends AccessoryElement {
   static readonly TYPE = 'image';

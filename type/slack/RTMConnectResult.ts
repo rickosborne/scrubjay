@@ -1,4 +1,4 @@
-import {WebAPICallResult} from '@slack/client';
+import {WebAPICallResult} from '@slack/web-api';
 
 export interface RTMConnectResult extends WebAPICallResult {
   self?: {

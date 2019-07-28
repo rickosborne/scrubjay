@@ -1,5 +1,5 @@
 import {SlackBlock} from './SlackBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export abstract class TextBlock extends SlackBlock {
   protected constructor(

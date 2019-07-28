@@ -1,6 +1,6 @@
 import {SlackBlock} from './SlackBlock';
 import {SlackId} from '../RTEvent';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class UserBlock extends SlackBlock {
   static readonly TYPE = 'user';

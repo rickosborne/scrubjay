@@ -1,6 +1,6 @@
 import {SlackBlock} from './SlackBlock';
 import {PlainTextBlock} from './PlainTextBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class OptionBlock extends SlackBlock {
   static readonly TYPE = 'option';

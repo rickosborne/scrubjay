@@ -1,5 +1,5 @@
 import {SlackBlock} from './SlackBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 import {KnownActionBlock} from '../SlackFormatBuilder';
 
 export class ActionsBlock extends SlackBlock {

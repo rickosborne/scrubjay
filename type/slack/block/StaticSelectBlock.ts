@@ -3,7 +3,7 @@ import {PlainTextBlock} from './PlainTextBlock';
 import {OptionBlock} from './OptionBlock';
 import {OptionGroupBlock} from './OptionGroupBlock';
 import {ConfirmationBlock} from './ConfirmationBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class StaticSelectBlock extends SelectBlock {
   static readonly MAX_ACTIONID_LENGTH = 255;

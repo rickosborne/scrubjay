@@ -3,7 +3,7 @@ import {PathLike, WriteFileOptions} from 'fs';
 import {injectableType} from 'inclined-plane';
 
 export interface FileSystemAbstraction {
-  appendFile(file: PathLike | number, data: any, options: WriteFileOptions, callback: (err: NodeJS.ErrnoException) => void): void;
+  appendFile(file: PathLike | number, data: any, options: WriteFileOptions, callback: (err: NodeJS.ErrnoException | null) => void): void;
 
   readFileSync(path: PathLike | number, options: { encoding: string; flag?: string; } | string): string;
 }

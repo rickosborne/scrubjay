@@ -1,5 +1,5 @@
 import {TextBlock} from './TextBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class PlainTextBlock extends TextBlock {
   static readonly TYPE = 'plain_text';

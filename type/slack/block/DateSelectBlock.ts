@@ -1,7 +1,7 @@
 import {SelectBlock} from './SelectBlock';
 import {PlainTextBlock} from './PlainTextBlock';
 import {ConfirmationBlock} from './ConfirmationBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class DateSelectBlock extends SelectBlock {
   static readonly DATE_FORMAT = 'YYYY-MM-DD';

@@ -1,5 +1,5 @@
 import {TextBlock} from './TextBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class MarkdownTextBlock extends TextBlock {
   static readonly TYPE = 'mrkdwn';

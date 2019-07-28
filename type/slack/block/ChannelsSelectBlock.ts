@@ -2,7 +2,7 @@ import {SelectBlock} from './SelectBlock';
 import {PlainTextBlock} from './PlainTextBlock';
 import {SlackId} from '../RTEvent';
 import {ConfirmationBlock} from './ConfirmationBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 
 export class ChannelsSelectBlock extends SelectBlock {
   static readonly TYPE = 'channels_select';

@@ -8,6 +8,7 @@ import {TweetEntities} from '../../type/twitter/TweetEntities';
 import {Tweet} from '../../type/twitter/Tweet';
 import {PostableMessage} from '../../type/slack/PostableMessage';
 import {KnownBlockable} from '../../type/slack/block/SlackBlock';
+import {ImageElement, MrkdwnElement, PlainTextElement, UserElement} from '@slack/types';
 
 const tweetQuotedWithEmojis: Tweet = Tweet.fromObject(tweetQuotedWithEmojisJson);
 const tweetWithVideo: Tweet = Tweet.fromObject(tweetWithVideoJson);
@@ -41,7 +42,7 @@ describe('SlackTweetFormatter', () => {
             case 'actions':
               break;
             case 'context':
-              block.elements.forEach(element => {
+              block.elements.forEach((element: ImageElement | UserElement | PlainTextElement | MrkdwnElement) => {
                 switch (element.type) {
                   case 'mrkdwn':
                     texts.push(element.text);

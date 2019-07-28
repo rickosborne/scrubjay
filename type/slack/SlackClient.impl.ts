@@ -1,4 +1,5 @@
-import {LogLevel, RTMClient, WebAPICallResult, WebClient} from '@slack/client';
+import {LogLevel, WebAPICallResult, WebClient} from '@slack/web-api';
+import {RTMClient} from '@slack/rtm-api';
 import {SlackConfig} from '../config/SlackConfig';
 import {DirectMessage} from './DirectMessage';
 import {PostableMessage} from './PostableMessage';
@@ -12,7 +13,7 @@ import {Eventually, EventuallyPostable, FromMessage, OnMessageActions, OnSlackMe
 import {NotifyQueue} from '../NotifyQueue';
 import {ScrubjayConfigStore} from '../config/ScrubjayConfigStore';
 import {LogSwitch} from '../Logger';
-import {retryForeverExponentialCappedRandom} from '@slack/client/dist/retry-policies';
+import {tenRetriesInAboutThirtyMinutes} from '@slack/web-api/dist/retry-policies';
 
 @SlackClient.implementation
 class SlackClientImpl implements SlackClient {
@@ -158,9 +159,10 @@ class SlackClientImpl implements SlackClient {
       this.rtm = null;
     }
     let loggerName = 'Slack RTMClient';
+    // noinspection JSUnusedLocalSymbols
     this.rtm = new RTMClient(this.oauth, {
       autoReconnect: true,
-      retryConfig: retryForeverExponentialCappedRandom,
+      retryConfig: tenRetriesInAboutThirtyMinutes,
       useRtmConnect: true,
       logLevel: LogLevel.WARN,
       logger: {

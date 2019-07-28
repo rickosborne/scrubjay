@@ -1,5 +1,5 @@
 import {KnownBlockable, SlackBlock} from './SlackBlock';
-import * as client from '@slack/client';
+import * as client from '@slack/web-api';
 import {PlainTextBlock} from './PlainTextBlock';
 
 export class ImageBlock extends SlackBlock implements KnownBlockable {

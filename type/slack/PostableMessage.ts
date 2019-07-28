@@ -1,7 +1,9 @@
-import * as slack from '@slack/client';
+import * as slack from '@slack/web-api';
 import {SlackId, SlackTimestamp} from './RTEvent';
 
 export class PostableMessage implements slack.ChatPostMessageArguments {
+  [argument: string]: unknown;
+
   static fromBlocks(blocks: slack.KnownBlock[], text: string, channel?: SlackId, thread?: SlackTimestamp): PostableMessage {
     return new PostableMessage(text, channel || '', thread, blocks);
   }
