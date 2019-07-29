@@ -106,8 +106,11 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
 
   // noinspection JSMethodCanBeStatic
   protected blockFromProfilePic(tweet: Tweet, flags: TweetRenderingFlags = {}): ImageBlock | undefined {
-    return tweet == null || tweet.user == null || tweet.user.profileImage == null ? undefined
-      : new ImageBlock(tweet.user.profileImage, `:${flags.followEmoji || FOLLOW_EMOJI_DEFAULT}:${tweet.user.name}`);
+    if (tweet == null || tweet.user == null || tweet.user.profileImage == null) {
+      return undefined;
+    }
+    const img = tweet.user.profileImage.replace(/_normal[.]/i, '.');
+    return new ImageBlock(img, `:${flags.followEmoji || FOLLOW_EMOJI_DEFAULT}:${tweet.user.name}`);
   }
 
   protected blocksFromTweet(builder: SlackFormatBuilder, tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions) {
