@@ -1,3 +1,5 @@
+import * as process from 'process';
+
 import defaultEnv, {Env} from './lib/env';
 
 import 'inclined-plane';
@@ -81,4 +83,4 @@ class SongImpl {
 }
 
 const song = buildInstance(SongImpl);
-song.start().catch(defaultEnv.debugFailure('song.start()'));
+song.start().catch(defaultEnv.debugFailure('song.start()', () => process.exit(1)));

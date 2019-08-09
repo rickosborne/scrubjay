@@ -16,7 +16,7 @@ export interface Env {
 
   debug(callback: string | AnySupplier, err?: any): void;
 
-  debugFailure(prefix: Obtainable<string>): (reason: any) => void;
+  debugFailure(prefix: Obtainable<string>, block?: () => void): (reason: any) => void;
 
   fromJson<T = {}>(path: string, type?: FromObject<T> | null): T;
 
@@ -36,6 +36,10 @@ export const Env = injectableType<Env>('Env');
 class EnvImpl implements Env {
   private readonly _debug: boolean;
 
+  public get isDebug(): boolean {
+    return this._debug;
+  }
+
   constructor(
     @LogSwitch.required private readonly logSwitch: LogSwitch,
     @Environment.required private readonly environment: Environment,
@@ -43,10 +47,6 @@ class EnvImpl implements Env {
   ) {
     this._debug = this.param('DEBUG', false, v => boolish(v, false))
       || this.param('NODE_DEBUG', false, v => boolish(v, false));
-  }
-
-  public get isDebug(): boolean {
-    return this._debug;
   }
 
   public debug(callback: string | AnySupplier, err: any = null): void {
@@ -65,8 +65,13 @@ class EnvImpl implements Env {
     }
   }
 
-  public debugFailure(prefix: Obtainable<string>): (reason: any) => void {
-    return (reason) => this.debug(() => `${obtain(prefix)}: ${this.readable(reason)}`);
+  public debugFailure(prefix: Obtainable<string>, block?: () => void): (reason: any) => void {
+    return (reason) => {
+      this.debug(() => `${obtain(prefix)}: ${this.readable(reason)}`);
+      if (block != null) {
+        block();
+      }
+    };
   }
 
   public fromJson<T = {}>(path: string, type?: FromObject<T> | null): T {

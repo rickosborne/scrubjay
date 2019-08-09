@@ -16,7 +16,7 @@ export interface TwitterEventStore {
 
   latestFor(username: string): Promise<Tweet | undefined>;
 
-  save(event: TweetJSON): void;
+  save(event: TweetJSON): Promise<void>;
 }
 
 export const TwitterEventStore = injectableType<TwitterEventStore>('TwitterEventStore');

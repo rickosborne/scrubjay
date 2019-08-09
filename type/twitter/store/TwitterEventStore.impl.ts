@@ -44,7 +44,7 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
       .then(one => one == null ? undefined : one);
   }
 
-  save(event: TweetJSON): void {
+  public async save(event: TweetJSON): Promise<void> {
     const username = event != null && event['user'] != null ? event['user']['screen_name'] : null;
     if (event != null) {
       const where: string[] = [];
@@ -61,7 +61,7 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
         env.debug(() => `TwitterEventStore.save cannot save tweet without ID: ${env.readable(event)}`);
         return;
       }
-      this
+      await this
         .query(`
           SELECT id
           FROM twitter_event
