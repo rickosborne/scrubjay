@@ -13,6 +13,12 @@ export interface ChannelAndFollowSummary {
   readonly followNames: string[];
 }
 
+export interface FeedDelivery {
+  readonly channelId: string;
+  readonly deliveryDate: number;
+  readonly tweetId: string;
+}
+
 export interface FeedStore {
   readonly channels: Promise<FeedChannel[]>;
 
@@ -21,6 +27,10 @@ export interface FeedStore {
   channelsFor(user: TwitterUser): Promise<FeedChannel[]>;
 
   createFeed(channel: Channel): Promise<FeedChannel>;
+
+  delivered(channel: Channel | FeedChannel, tweetId: string): Promise<boolean>;
+
+  deliveryFor(channel: Channel | FeedChannel, tweetId: string): Promise<FeedDelivery | null>;
 
   follow(channel: Channel, user: TwitterUser): Promise<boolean>;
 

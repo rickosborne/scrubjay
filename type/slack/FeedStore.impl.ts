@@ -1,7 +1,7 @@
 import {MysqlClient} from '../MysqlClient';
 import {Channel} from './Channel';
 import {TwitterUser} from '../twitter/TwitterUser';
-import {ChannelAndFollowSummary, FeedChannel, FeedStore} from './FeedStore';
+import {ChannelAndFollowSummary, FeedChannel, FeedDelivery, FeedStore} from './FeedStore';
 import {buildFromObject} from '../FromObject';
 import {SlackId} from './RTEvent';
 
@@ -26,23 +26,40 @@ class FeedChannelImpl implements FeedChannel {
   }
 }
 
+class FeedDeliveryImpl implements FeedDelivery {
+  public static fromObject(object: {}): FeedDeliveryImpl {
+    return buildFromObject(FeedDeliveryImpl, object)
+      .string(['channel_id', 'channelId'])
+      .string(['tweet_id', 'tweetId'])
+      .date(['delivery_dt', 'deliveryDate'])
+      .orThrow(message => new Error(`Could not reify FeedDelivery: ${message}`));
+  }
+
+  constructor(
+    public readonly channelId: SlackId,
+    public readonly tweetId: string,
+    public readonly deliveryDate: number,
+  ) {
+  }
+}
+
 @FeedStore.implementation
 class FeedStoreImpl extends MysqlClient implements FeedStore {
   public get channels(): Promise<FeedChannel[]> {
     return this.findObjects(FeedChannelImpl, `
-      SELECT channel_id, channel_name
-      FROM slack_feed
-      ORDER BY channel_name
+        SELECT channel_id, channel_name
+        FROM slack_feed
+        ORDER BY channel_name
     `);
   }
 
   public channelsAndFollows(): Promise<ChannelAndFollowSummary[]> {
     return this
       .query<void>(`
-        SELECT sf.channel_id, sf.channel_name, sft.twitter_username
-        FROM slack_feed AS sf
-               INNER JOIN slack_feed_twitter AS sft ON (sft.slack_channel_id = sf.channel_id)
-        ORDER BY sf.channel_name, sft.twitter_username
+          SELECT sf.channel_id, sf.channel_name, sft.twitter_username
+          FROM slack_feed AS sf
+                   INNER JOIN slack_feed_twitter AS sft ON (sft.slack_channel_id = sf.channel_id)
+          ORDER BY sf.channel_name, sft.twitter_username
       `)
       .fetch<ChannelAndFollowRow>()
       .then((rows) => {
@@ -73,10 +90,10 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
 
   public channelsFor(user: TwitterUser): Promise<FeedChannel[]> {
     return this.findObjects(FeedChannelImpl, `
-      SELECT sf.channel_id, sf.channel_name
-      FROM slack_feed_twitter AS sft
-             INNER JOIN slack_feed AS sf ON (sft.slack_channel_id = sf.channel_id)
-      WHERE (sft.twitter_username = ?)
+        SELECT sf.channel_id, sf.channel_name
+        FROM slack_feed_twitter AS sft
+                 INNER JOIN slack_feed AS sf ON (sft.slack_channel_id = sf.channel_id)
+        WHERE (sft.twitter_username = ?)
     `, [user.name]);
   }
 
@@ -84,8 +101,8 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
     return new Promise((resolve, reject) => {
       this
         .query<[string, string]>(`
-          INSERT IGNORE INTO slack_feed (channel_id, channel_name)
-          VALUES (?, ?)
+            INSERT IGNORE INTO slack_feed (channel_id, channel_name)
+            VALUES (?, ?)
         `, [channel.id, channel.name])
         .execute()
         .then(() => {
@@ -95,14 +112,33 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
     });
   }
 
+  delivered(channel: Channel | FeedChannel, tweetId: string): Promise<boolean> {
+    return this
+      .query<[string, string]>(`
+          INSERT IGNORE INTO slack_feed_delivery (channel_id, tweet_id, delivery_dt)
+          VALUES (?, ?, CURRENT_TIMESTAMP)
+      `, [channel.id, tweetId])
+      .execute()
+      .then(() => true)
+      ;
+  }
+
+  public deliveryFor(channel: Channel | FeedChannel, tweetId: string): Promise<FeedDelivery | null> {
+    return this.findObject<FeedDelivery>(FeedDeliveryImpl, `
+        SELECT channel_id, tweet_id, delivery_dt
+        FROM slack_feed_delivery
+        WHERE (channel_id = ?) AND (tweet_id = ?)
+    `, [channel.id, tweetId]);
+  }
+
   public follow(channel: Channel, user: TwitterUser): Promise<boolean> {
     if (user == null || user.name == null) {
       return Promise.reject(new Error('User has no name'));
     }
     return this
       .query<[string, string]>(`
-        INSERT IGNORE INTO slack_feed_twitter (slack_channel_id, twitter_username)
-        VALUES (?, ?)
+          INSERT IGNORE INTO slack_feed_twitter (slack_channel_id, twitter_username)
+          VALUES (?, ?)
       `, [channel.id, user.name])
       .execute()
       .then(() => true)
@@ -111,10 +147,10 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
 
   public followsFor(channel: FeedChannel | Channel): Promise<TwitterUser[]> {
     return this.findObjects<TwitterUser>(TwitterUser, `
-      SELECT f.id, f.username, f.location, f.url, f.description, f.active
-      FROM slack_feed_twitter AS sft
-             INNER JOIN twitter_follow AS f ON (sft.twitter_username = f.username) AND (f.active = 1)
-      WHERE (sft.slack_channel_id = ?)
+        SELECT f.id, f.username, f.location, f.url, f.description, f.active
+        FROM slack_feed_twitter AS sft
+                 INNER JOIN twitter_follow AS f ON (sft.twitter_username = f.username) AND (f.active = 1)
+        WHERE (sft.slack_channel_id = ?)
     `, [channel.id]);
   }
 }

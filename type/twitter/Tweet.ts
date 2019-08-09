@@ -25,6 +25,7 @@ export class Tweet {
     public readonly replyTweetId?: any,
     public readonly replyUserId?: any,
     public readonly retweeted?: Tweet,
+    public readonly source?: any,
   ) {
     this._text = (extended != null && extended.text != null) ? extended.text : text;
   }
@@ -67,6 +68,7 @@ export class Tweet {
       .scalar(['in_reply_to_status_id_str', 'in_reply_to_status_id'], null, false)
       .scalar(['in_reply_to_user_id_str', 'in_reply_to_user_id'], null, false)
       .obj('retweeted_status', Tweet, false)
+      .source()
       .orThrow((message) => new Error(`Could not create Tweet: ${message}`));
   }
 

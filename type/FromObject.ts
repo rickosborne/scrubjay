@@ -14,7 +14,7 @@ type Constructor<T> = new(...args: any[]) => T;
 export interface Builder<T> {
   bool(name: string, required?: boolean): Builder<T>;
 
-  date(name: string, required?: boolean): Builder<T>;
+  date(name: string | string[], required?: boolean): Builder<T>;
 
   list<U>(name: string, type: FromObject<U> | string, required?: boolean): Builder<T>;
 
@@ -29,6 +29,8 @@ export interface Builder<T> {
   orThrow(thrower: (message?: string) => Error): T;
 
   scalar(name: string | string[], type: string | null, required?: boolean): Builder<T>;
+
+  source(): this;
 
   skip(): this;
 
@@ -51,7 +53,7 @@ export class Nope<T> implements Builder<T> {
     return this;
   }
 
-  date(name: string, required?: boolean): Builder<T> {
+  date(name: string | string[], required?: boolean): Builder<T> {
     return this;
   }
 
@@ -88,6 +90,10 @@ export class Nope<T> implements Builder<T> {
     return this;
   }
 
+  source(): this {
+    return this;
+  }
+
   string(name: string | string[], required?: boolean): this {
     return this;
   }
@@ -113,7 +119,7 @@ export class Maybe<T> implements Builder<T> {
     );
   }
 
-  date(name: string, required: boolean = true): Builder<T> {
+  date(name: string | string[], required: boolean = true): Builder<T> {
     return this.extract(
       name,
       'date',
@@ -195,6 +201,11 @@ export class Maybe<T> implements Builder<T> {
 
   skip(): this {
     this.args.push(undefined);
+    return this;
+  }
+
+  source(): this {
+    this.args.push(this.object);
     return this;
   }
 

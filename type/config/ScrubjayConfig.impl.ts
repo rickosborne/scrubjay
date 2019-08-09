@@ -5,6 +5,7 @@ import {MysqlConfig} from './MysqlConfig';
 import {SlackConfig} from './SlackConfig';
 import {TwitterConfig, TwitterCredentials} from './TwitterConfig';
 import {boolish} from '../../lib/boolish';
+import {AWSConfig} from './AWSConfig';
 
 export class SlackConfigImpl implements SlackConfig {
   static fromObject(object: {}): SlackConfigImpl {
@@ -32,6 +33,20 @@ export class SlackConfigImpl implements SlackConfig {
 }
 
 export class TwitterConfigImpl implements TwitterConfig {
+  // noinspection JSMethodCanBeStatic
+  public get connectStream(): boolean {
+    return env.param('TWITTER_STREAM', true, (s) => boolish(s, true));
+  }
+
+  get credentials(): TwitterCredentials {
+    return {
+      access_token_key: this.accessTokenKey,
+      access_token_secret: this.accessTokenSecret,
+      consumer_key: this.consumerKey,
+      consumer_secret: this.consumerSecret
+    };
+  }
+
   // noinspection JSUnusedGlobalSymbols
   static fromObject(object: {}): TwitterConfigImpl {
     return buildFromObject(TwitterConfigImpl, object)
@@ -48,20 +63,6 @@ export class TwitterConfigImpl implements TwitterConfig {
     public readonly consumerKey: string,
     public readonly consumerSecret: string,
   ) {
-  }
-
-  get credentials(): TwitterCredentials {
-    return {
-      access_token_key: this.accessTokenKey,
-      access_token_secret: this.accessTokenSecret,
-      consumer_key: this.consumerKey,
-      consumer_secret: this.consumerSecret
-    };
-  }
-
-  // noinspection JSMethodCanBeStatic
-  public get connectStream(): boolean {
-    return env.param('TWITTER_STREAM', true, (s) => boolish(s, true));
   }
 }
 
@@ -87,6 +88,23 @@ class MysqlConfigImpl implements MysqlConfig {
   }
 }
 
+class AWSConfigImpl implements AWSConfig {
+  public static fromObject(object: {}): AWSConfigImpl {
+    return buildFromObject(AWSConfigImpl, object)
+      .string('region')
+      .string('accessKeyId')
+      .string('secretAccessKey')
+      .orThrow(message => new Error(`Could not create AWSConfig: ${message}`));
+  }
+
+  constructor(
+    public readonly region: string,
+    public readonly accessKeyId: string,
+    public readonly secretAccessKey: string
+  ) {
+  }
+}
+
 class ScrubjayConfigImpl implements ScrubjayConfig {
   public static fromObject(object: {}): ScrubjayConfigImpl {
     return buildFromObject(ScrubjayConfigImpl, object)
@@ -95,8 +113,14 @@ class ScrubjayConfigImpl implements ScrubjayConfig {
       .obj('twitter', TwitterConfigImpl)
       .obj('mysql', MysqlConfigImpl)
       .obj('slack', SlackConfigImpl)
+      .obj('aws', AWSConfigImpl)
       .string('version', false)
       .orThrow(message => new Error(`Could not build Config: ${message}`));
+  }
+
+  @AWSConfig.supplier
+  public static getAWSConfig(@ScrubjayConfig.required scrubjayConfig: ScrubjayConfig): AWSConfig {
+    return scrubjayConfig.aws;
   }
 
   @ScrubjayConfig.supplier
@@ -126,6 +150,7 @@ class ScrubjayConfigImpl implements ScrubjayConfig {
     public readonly twitter: TwitterConfigImpl,
     public readonly mysql: MysqlConfig,
     public readonly slack: SlackConfigImpl,
+    public readonly aws: AWSConfig,
     public readonly version?: string
   ) {
   }

@@ -7,6 +7,8 @@ export interface TweetJSON {
   };
 }
 
+export const TweetJSON = injectableType<TweetJSON>('TweetJSON');
+
 export interface TwitterEventStore {
   findById(statusId: string): Promise<Tweet | null>;
 

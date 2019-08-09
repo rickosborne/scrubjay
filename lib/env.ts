@@ -1,17 +1,39 @@
 import {FromObject} from '../type/FromObject';
-import {getTimeHHMMSS} from './time';
+import {getDateYYYYMMDD, getTimeHHMMSS} from './time';
 import {indentHanging} from './unindent';
 import {obtain, Obtainable} from '../type/Obtainable';
 import {boolish} from './boolish';
 import {LogSwitch} from '../type/Logger';
 import {FileSystemAbstraction} from '../type/FileSystemAbstraction';
 import {Environment} from '../type/Environment';
-import {buildInstance} from 'inclined-plane';
+import {injectableType} from 'inclined-plane';
 import '../type/LogSwitch.impl';
 
 type AnySupplier = () => any;
 
-export class Env {
+export interface Env {
+  isDebug: boolean;
+
+  debug(callback: string | AnySupplier, err?: any): void;
+
+  debugFailure(prefix: Obtainable<string>): (reason: any) => void;
+
+  fromJson<T = {}>(path: string, type?: FromObject<T> | null): T;
+
+  param<T = string>(
+    name: string,
+    defaultValue?: T | null,
+    converter?: (s: string) => T,
+    thisArg?: {} | null,
+  ): T;
+
+  readable(obj: any): string | number;
+}
+
+export const Env = injectableType<Env>('Env');
+
+@Env.implementation
+class EnvImpl implements Env {
   private readonly _debug: boolean;
 
   constructor(
@@ -27,13 +49,14 @@ export class Env {
     return this._debug;
   }
 
-  public debug(callback: string | AnySupplier, err: any = null) {
+  public debug(callback: string | AnySupplier, err: any = null): void {
     if (this._debug) {
       const message = typeof callback === 'function' ? callback() : callback;
       // noinspection SuspiciousTypeOfGuard
       const msg = typeof message === 'string' ? message : JSON.stringify(message, null, 2);
       if (msg != null) {
-        this.logSwitch.info(`${getTimeHHMMSS()} ${indentHanging(msg, 9)}`);
+        const now = new Date();
+        this.logSwitch.info(`${getDateYYYYMMDD(now)} ${getTimeHHMMSS(now)} ${indentHanging(msg, 20)}`);
       }
       if (err instanceof Error) {
         this.logSwitch.error(err.message);
@@ -46,7 +69,6 @@ export class Env {
     return (reason) => this.debug(() => `${obtain(prefix)}: ${this.readable(reason)}`);
   }
 
-  // noinspection JSMethodCanBeStatic
   public fromJson<T = {}>(path: string, type?: FromObject<T> | null): T {
     const object = JSON.parse(this.filesystem.readFileSync(path, {encoding: 'utf8'}));
     return type == null ? object : type.fromObject(object);
@@ -63,14 +85,14 @@ export class Env {
       if (defaultValue === null || defaultValue === undefined) {
         throw new Error(`Missing required parameter: ${name}`);
       }
-      this.debug(() => `${name}=${defaultValue} (default)`);
+      this.debug(() => `${name} (default: ${defaultValue}) (default)`);
       return defaultValue;
     }
-    this.debug(() => `${name}=${defaultValue}`);
-    return converter.call(thisArg, value);
+    const converted = converter.call(thisArg, value);
+    this.debug(() => `${name} (default: ${defaultValue}) ${converted}`);
+    return converted;
   }
 
-  // noinspection JSMethodCanBeStatic
   public readable(obj: any): string | number {
     if (obj == null) {
       return '<null>';
@@ -86,5 +108,5 @@ export class Env {
   }
 }
 
-const env = buildInstance(Env);
+const env: Env = Env.getInstance();
 export default env;

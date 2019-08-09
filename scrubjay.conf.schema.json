@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "properties": {
+    "aws": {
+      "properties": {
+        "accessKeyId": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "secretAccessKey": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accessKeyId",
+        "region",
+        "secretAccessKey"
+      ],
+      "type": "object"
+    },
+    "baseUrl": {
+      "type": "string"
+    },
+    "mysql": {
+      "properties": {
+        "host": {
+          "default": "127.0.0.1",
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "port": {
+          "default": 3306,
+          "type": "number"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "password",
+        "schema",
+        "username"
+      ],
+      "type": "object"
+    },
+    "outputPath": {
+      "type": "string"
+    },
+    "slack": {
+      "properties": {
+        "appId": {
+          "type": "string"
+        },
+        "botOAuth": {
+          "type": "string"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "oauth": {
+          "type": "string"
+        },
+        "signingSecret": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "verificationToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "appId",
+        "botOAuth",
+        "clientId",
+        "oauth",
+        "signingSecret",
+        "token",
+        "verificationToken"
+      ],
+      "type": "object"
+    },
+    "twitter": {
+      "properties": {
+        "accessTokenKey": {
+          "type": "string"
+        },
+        "accessTokenSecret": {
+          "type": "string"
+        },
+        "consumerKey": {
+          "type": "string"
+        },
+        "consumerSecret": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accessTokenKey",
+        "accessTokenSecret",
+        "consumerKey",
+        "consumerSecret"
+      ],
+      "type": "object"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "aws",
+    "mysql",
+    "slack",
+    "twitter",
+    "version"
+  ],
+  "type": "object"
+}
