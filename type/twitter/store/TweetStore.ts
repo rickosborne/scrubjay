@@ -6,6 +6,8 @@ import {injectableType} from 'inclined-plane';
 export interface TweetStore {
   follows(active?: boolean): Promise<TwitterUser[]>;
 
+  notExist(statusIds: string[]): Promise<string[]>;
+
   recentForIdentity(ident: Identity, count: number): Promise<Tweet[]>;
 
   store(tweet: Tweet): Promise<boolean>;

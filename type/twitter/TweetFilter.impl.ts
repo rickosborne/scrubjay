@@ -1,5 +1,5 @@
 import {TweetFilter} from './TweetFilter';
-import {TweetJSON, TwitterEventStore} from './store/TwitterEventStore';
+import {TwitterEventStore} from './store/TwitterEventStore';
 import {Tweet} from './Tweet';
 import {TweetStore} from './store/TweetStore';
 import {TwitterUser} from './TwitterUser';
@@ -14,14 +14,22 @@ class TweetFilterImpl implements TweetFilter {
   ) {
   }
 
-  public async publish(tweet: Tweet, source: TweetJSON): Promise<boolean> {
-    if ((await this.twitterEventStore.findById(tweet.id)) != null) {
-      return false;
+  public async publish(tweets: Tweet[]): Promise<Tweet[]> {
+    if (tweets == null || tweets.length < 1) {
+      return [];
     }
-    if (tweet.replyUser == null) {
-      return true;
+    const ids = tweets.map(t => t.id);
+    const newIds = await this.tweetStore.notExist(ids);
+    const newTweets = tweets.filter(t => newIds.indexOf(t.id) >= 0);
+    if (newTweets.length < 1) {
+      return [];
     }
-    const originalUser: TwitterUser | null = await this.twitterUserStore.findOneByName(tweet.replyUser);
-    return originalUser != null;
+    return (await Promise.all(tweets.map(async (tweet) => {
+      if (tweet.replyUser == null) {
+        return tweet;
+      }
+      const originalUser: TwitterUser | null = await this.twitterUserStore.findOneByName(tweet.replyUser);
+      return originalUser != null ? tweet : undefined;
+    }))).filter(tweet => tweet != null) as Tweet[];
   }
 }

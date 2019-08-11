@@ -135,7 +135,7 @@ class TwitterClientImpl implements TwitterClient {
     this.tweetCallbacks.push(callback);
   }
 
-  public recent(user: TwitterUser, count: number = 20): Promise<[Tweet, TweetJSON][]> {
+  public recent(user: TwitterUser, count: number = 20): Promise<Tweet[]> {
     if (this.twitter == null) {
       throw new Error(`No Twitter client to fetch recent tweets.`);
     }
@@ -144,10 +144,6 @@ class TwitterClientImpl implements TwitterClient {
         screen_name: user.name,
         count: count
       })
-      .then(response => Array.isArray(response) ? response.map(item => {
-        // noinspection UnnecessaryLocalVariableJS
-        const pair: [Tweet, TweetJSON] = [Tweet.fromObject(item), <TweetJSON>item];
-        return pair;
-      }) : []);
+      .then(response => Array.isArray(response) ? response.map(item => Tweet.fromObject(item)) : []);
   }
 }

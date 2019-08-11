@@ -19,6 +19,19 @@ class TweetStoreImpl extends MysqlClient implements TweetStore {
     `, [active]);
   }
 
+  public async notExist(statusIds: string[]): Promise<string[]> {
+    if (statusIds == null || statusIds.length < 1) {
+      return [];
+    }
+    const existing = await this.query(`
+      SELECT id
+      FROM tweet
+      WHERE id IN (${statusIds.map(() => '?').join(',')})
+    `, statusIds)
+      .fetch<string>((rows) => rows.map((row) => row.id));
+    return statusIds.filter(id => existing.indexOf(id) < 0);
+  }
+
   public recentForIdentity(ident: Identity, count: number): Promise<Tweet[]> {
     return this.findObjects(Tweet, `
       SELECT t.id, t.username, t.created, t.txt, t.html

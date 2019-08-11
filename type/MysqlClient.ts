@@ -2,7 +2,6 @@ import * as mysql2 from 'mysql2/promise';
 import env, {Env} from '../lib/env';
 import {FromObject} from './FromObject';
 import {unindent} from '../lib/unindent';
-import * as mysql from 'mysql';
 import {MysqlConfig} from './config/MysqlConfig';
 import {injectableType} from 'inclined-plane';
 import {Logger} from './Logger';
@@ -22,7 +21,7 @@ export interface SplitResults {
 }
 
 export interface MysqlAdapter {
-  createConnection(options: mysql.ConnectionOptions): Promise<mysql2.Connection>;
+  createConnection(options: mysql2.ConnectionOptions): Promise<mysql2.Connection>;
 
   query?<ROWS>(
     sql: string,
@@ -49,7 +48,12 @@ export class QueryImpl<PARAMS> implements Query<PARAMS> {
     const realParams: PARAMS | undefined = this.params == null ? undefined
       : typeof this.params === 'function' ? this.params() : this.params;
     const db = await this.db;
-    const queryResult = await db.query(this.sql, realParams);
+    let queryResult;
+    try {
+      queryResult = await db.query(this.sql, realParams);
+    } catch (e) {
+      throw new Error(`Query: ${this.sql} ; Error: ${e.message}`);
+    }
     const rows = Array.isArray(queryResult) ? queryResult[0] : null;
     if (this.logger != null && rows != null && ((Array.isArray(rows) && rows.length > 0) || !Array.isArray(rows))) {
       this.logger(() => {
@@ -112,12 +116,13 @@ const mysql2ConnectionOptions = injectableType<mysql2.ConnectionOptions>('mysql2
 export abstract class MysqlClient {
 
   private get dbConnection(): Promise<mysql2.Connection> {
+    const className = this.constructor != null ? (this.constructor.name || '') : '';
     try {
       let conn = this._db;
       if (conn == null) {
         this.connectionId = MysqlClient.nextConnectionId++;
         if (this.env != null) {
-          this.env.debug(`MysqlClient: Creating connection ${this.connectionId}`);
+          this.env.debug(`MysqlClient(${className}): Creating connection ${this.connectionId}`);
         }
         conn = MysqlClient.db(mysql2ConnectionOptions.getInstance());
         this._db = conn;
@@ -132,7 +137,7 @@ export abstract class MysqlClient {
         if (this._db != null) {
           const conn = await this._db;
           if (this.env != null) {
-            this.env.debug(`MysqlClient: Dropping connection ${this.connectionId}`);
+            this.env.debug(`MysqlClient(${className}): Dropping connection ${this.connectionId}`);
           }
           if (conn != null) {
             conn.destroy();

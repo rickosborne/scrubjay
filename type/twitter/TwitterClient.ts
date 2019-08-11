@@ -28,7 +28,7 @@ export interface TwitterClient {
 
   onTweet(callback: TweetCallback): void;
 
-  recent(user: TwitterUser, count?: number): Promise<[Tweet, TweetJSON][]>;
+  recent(user: TwitterUser, count?: number): Promise<Tweet[]>;
 }
 
 export const TwitterClient = injectableType<TwitterClient>('TwitterClient');

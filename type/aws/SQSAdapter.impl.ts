@@ -104,11 +104,13 @@ class TypedQueueImpl<T> implements TypedQueue<T> {
       if (sendData != null) {
         resolve(sendData.MessageId);
       }
-      this.env.debugFailure(() => `add<${this.typeName}>`)(sendErr);
+      if (sendErr != null) {
+        this.env.debug(() => `TypedQueueImpl.add<${this.typeName}>`, sendErr);
+      }
       reject(sendErr);
     })).then((messageId) => {
       if (messageId != null) {
-        this.env.debug(() => `add<${this.typeName}> => ${messageId}`);
+        this.env.debug(() => `TypedQueueImpl.add<${this.typeName}> => ${messageId}`);
       }
       return undefined;
     });

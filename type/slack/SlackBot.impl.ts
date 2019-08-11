@@ -384,9 +384,9 @@ export class SlackBotImpl implements SlackBot {
                   .then(tweets => {
                     const count = tweets.length;
                     const didSaveTweet: Promise<boolean>[] = [];
-                    tweets.forEach(([tweet, json]) => {
+                    tweets.forEach(async (tweet) => {
                       didSaveTweet.push(this.tweetStore.store(tweet));
-                      this.twitterEventStore.save(json);
+                      await this.twitterEventStore.save(tweet.source);
                     });
                     return Promise.all(didSaveTweet)
                       .then(([...saved]) => {

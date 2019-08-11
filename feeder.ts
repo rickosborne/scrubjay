@@ -46,21 +46,21 @@ class FeederImpl {
     for (const user of users) {
       if (user.name != null) {
         this.env.debug(() => `FeederImpl.backfillTweets user ${user.name}`);
-        const tweetPairs = await this.twitterClient.recent(user);
-        for (const [tweet, json] of tweetPairs) {
-          await this.handleTweet(queue, tweet, json);
-        }
+        await this.handleTweets(queue, await this.twitterClient.recent(user));
       }
     }
   }
 
-  protected async handleTweet(queue: TypedQueue<TweetJSON>, tweet?: Tweet, source?: TweetJSON): Promise<boolean> {
-    if (tweet != null && source != null && await this.tweetFilter.publish(tweet, source)) {
-      this.env.debug(() => `FeederImpl.handleTweet ${tweet.id} @${tweet.user.name} ${tweet.longText}`);
-      await queue.add(source);
-      await this.tweetStore.store(tweet);
-      await this.twitterEventStore.save(source);
-      return true;
+  protected async handleTweets(queue: TypedQueue<TweetJSON>, tweets: Tweet[]): Promise<boolean> {
+    const newTweets = await this.tweetFilter.publish(tweets);
+    for (const tweet of newTweets) {
+      if (tweet != null && tweet.source != null) {
+        this.env.debug(() => `FeederImpl.handleTweet ${tweet.id} @${tweet.user.name} ${tweet.longText}`);
+        await queue.add(tweet.source);
+        await this.tweetStore.store(tweet);
+        await this.twitterEventStore.save(tweet.source);
+        return true;
+      }
     }
     return false;
   }
@@ -69,7 +69,7 @@ class FeederImpl {
     const users: TwitterUser[] = await this.tweetStore.follows();
     const queue: TypedQueue<TweetJSON> = await this.tweetQueue;
     this.twitterClient.addUsers(...users);
-    this.twitterClient.onTweet((tweet) => this.handleTweet(queue, tweet, tweet.source));
+    this.twitterClient.onTweet((tweet) => this.handleTweets(queue, [tweet]));
     this.twitterClient.connect();
     await this.backfillTweets(users, queue);
   }
