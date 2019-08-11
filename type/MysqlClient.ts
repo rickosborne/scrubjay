@@ -1,5 +1,5 @@
 import * as mysql2 from 'mysql2/promise';
-import env from '../lib/env';
+import env, {Env} from '../lib/env';
 import {FromObject} from './FromObject';
 import {unindent} from '../lib/unindent';
 import * as mysql from 'mysql';
@@ -11,6 +11,8 @@ export type QueryResultType = mysql2.RowDataPacket[] | mysql2.OkPacket | mysql2.
 export type Mysql2QueryResult = [QueryResultType, mysql2.FieldPacket[]];
 export type InsertResults = mysql2.OkPacket;
 export type ResultSetConverter<ROW> = (rows: Array<mysql2.RowDataPacket>) => Array<ROW>;
+
+export const CONNECTION_TIMEOUT_MS = 5000;
 
 export interface SplitResults {
   ok?: mysql2.OkPacket;
@@ -109,26 +111,62 @@ const mysql2ConnectionOptions = injectableType<mysql2.ConnectionOptions>('mysql2
 
 export abstract class MysqlClient {
 
+  private get dbConnection(): Promise<mysql2.Connection> {
+    try {
+      let conn = this._db;
+      if (conn == null) {
+        this.connectionId = MysqlClient.nextConnectionId++;
+        if (this.env != null) {
+          this.env.debug(`MysqlClient: Creating connection ${this.connectionId}`);
+        }
+        conn = MysqlClient.db(mysql2ConnectionOptions.getInstance());
+        this._db = conn;
+      }
+      return Promise.resolve(conn);
+    } finally {
+      if (this.dbTimer != null) {
+        clearTimeout(this.dbTimer);
+        this.dbTimer = undefined;
+      }
+      this.dbTimer = setTimeout(async () => {
+        if (this._db != null) {
+          const conn = await this._db;
+          if (this.env != null) {
+            this.env.debug(`MysqlClient: Dropping connection ${this.connectionId}`);
+          }
+          if (conn != null) {
+            conn.destroy();
+          }
+          this._db = undefined;
+        }
+      }, CONNECTION_TIMEOUT_MS) as unknown as number;
+    }
+  }
+
   constructor(
     private readonly logger: Logger = env.debug.bind(env)
   ) {
   }
 
-  @mysql2Connection.inject protected _db: Promise<mysql2.Connection> | undefined;
+  protected static nextConnectionId = 1;
+  protected _db: Promise<mysql2.Connection> | undefined;
+  protected connectionId = -1;
+  protected dbTimer: number | undefined;
+  @Env.inject env: Env | undefined;
 
   @mysql2ConnectionOptions.supplier
   public static connectionOptions(
     @MysqlConfig.required config: MysqlConfig
   ): mysql2.ConnectionOptions {
     return {
-      // waitForConnections: true,
+      waitForConnections: true,
       host: config.host,
       port: config.port,
       user: config.username,
       password: config.password,
       database: config.schema,
-      // connectionLimit: 4,
-      // queueLimit: 0
+      connectionLimit: 4,
+      queueLimit: 0
     };
   }
 
@@ -156,10 +194,7 @@ export abstract class MysqlClient {
   }
 
   public query<PARAMS>(sql: string, params?: PARAMS): Query<PARAMS> {
-    if (this._db == null) {
-      throw new Error('No database connection');
-    }
-    return new QueryImpl<PARAMS>(this._db, sql, params == null ? undefined : () => params, this.logger);
+    return new QueryImpl<PARAMS>(this.dbConnection, sql, params == null ? undefined : () => params, this.logger);
   }
 
   protected selectOne(fieldName: string): string {
