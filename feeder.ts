@@ -51,7 +51,7 @@ class FeederImpl {
     }
   }
 
-  protected async handleTweets(queue: TypedQueue<TweetJSON>, tweets: Tweet[]): Promise<boolean> {
+  protected async handleTweets(queue: TypedQueue<TweetJSON>, tweets: Tweet[]): Promise<void> {
     const newTweets = await this.tweetFilter.publish(tweets);
     for (const tweet of newTweets) {
       if (tweet != null && tweet.source != null) {
@@ -59,10 +59,8 @@ class FeederImpl {
         await queue.add(tweet.source);
         await this.tweetStore.store(tweet);
         await this.twitterEventStore.save(tweet.source);
-        return true;
       }
     }
-    return false;
   }
 
   public async start(): Promise<void> {
