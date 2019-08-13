@@ -18,7 +18,12 @@ class TweetStoreImpl extends MysqlClient implements TweetStore {
         WHERE (sft.twitter_username = ?) AND (sfd.delivery_dt IS NULL)
     `, [id, author])
       .fetch<number>((rows) => rows.map((row) => row.id))
-      .then(missing => Array.isArray(missing) && missing.length === 1 ? missing[0] > 0 : false);
+      .then(missing => {
+        if (this.env != null) {
+          this.env.debug(() => `TweetStoreImpl.anyUndelivered('${id}', '${author}) => ${JSON.stringify(missing)}'`);
+        }
+        return Array.isArray(missing) && missing.length === 1 ? missing[0] > 0 : false;
+      });
   }
 
   public follows(active: boolean = true): Promise<TwitterUser[]> {
