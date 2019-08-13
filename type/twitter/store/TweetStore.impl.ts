@@ -17,7 +17,7 @@ class TweetStoreImpl extends MysqlClient implements TweetStore {
             LEFT JOIN slack_feed_delivery AS sfd ON (sft.slack_channel_id = sfd.channel_id) AND (sfd.tweet_id = ?)
         WHERE (sft.twitter_username = ?) AND (sfd.delivery_dt IS NULL)
     `, [id, author])
-      .fetch<number>((rows) => rows.map((row) => row.id))
+      .fetch<number>((rows) => rows.map((row) => row.missing))
       .then(missing => {
         if (this.env != null) {
           this.env.debug(() => `TweetStoreImpl.anyUndelivered('${id}', '${author}) => ${JSON.stringify(missing)}'`);
