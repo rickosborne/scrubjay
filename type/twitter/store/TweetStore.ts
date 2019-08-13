@@ -4,6 +4,8 @@ import {TwitterUser} from '../TwitterUser';
 import {injectableType} from 'inclined-plane';
 
 export interface TweetStore {
+  anyUndelivered(id: string, author?: string): Promise<boolean>;
+
   follows(active?: boolean): Promise<TwitterUser[]>;
 
   notExist(statusIds: string[]): Promise<string[]>;

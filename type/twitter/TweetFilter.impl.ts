@@ -1,10 +1,10 @@
 import {TweetFilter} from './TweetFilter';
 import {TwitterEventStore} from './store/TwitterEventStore';
 import {Tweet} from './Tweet';
-import {TweetStore} from './store/TweetStore';
 import {TwitterUser} from './TwitterUser';
 import {TwitterUserStore} from './store/TwitterUserStore';
 import {Env} from '../../lib/env';
+import {TweetStore} from './store/TweetStore';
 
 @TweetFilter.implementation
 class TweetFilterImpl implements TweetFilter {
@@ -21,14 +21,18 @@ class TweetFilterImpl implements TweetFilter {
       this.env.debug('TweetFilterImpl.publish given empty tweets');
       return [];
     }
-    const ids = tweets.map(t => t.id);
-    const newIds = await this.tweetStore.notExist(ids);
-    const newTweets = tweets.filter(t => newIds.indexOf(t.id) >= 0);
-    if (newTweets.length < 1) {
-      this.env.debug(() => `TweetFilterImpl.publish: No new tweets: ${ids} == ${newIds}`);
-      return [];
-    }
+    // const ids = tweets.map(t => t.id);
+    // const newIds = await this.tweetStore.notExist(ids);
+    // const newTweets = tweets.filter(t => newIds.indexOf(t.id) >= 0);
+    // if (newTweets.length < 1) {
+    //   this.env.debug(() => `TweetFilterImpl.publish: No new tweets: ${ids} == ${newIds}`);
+    //   return [];
+    // }
     const publishable = (await Promise.all(tweets.map(async (tweet) => {
+      const anyUndelivered = await this.tweetStore.anyUndelivered(tweet.id, tweet.user.name);
+      if (!anyUndelivered) {
+        return undefined;
+      }
       if (tweet.replyUser == null) {
         return tweet;
       }

@@ -10,12 +10,20 @@ class TweetStoreImpl extends MysqlClient implements TweetStore {
     super();
   }
 
+  public async anyUndelivered(id: string, author: string = ''): Promise<boolean> {
+    return this.query(`
+        SELECT COUNT(*) AS missing
+        FROM slack_feed_twitter AS sft
+            LEFT JOIN slack_feed_delivery AS sfd ON (sft.slack_channel_id = sfd.channel_id) AND (sfd.tweet_id = ?)
+        WHERE (sft.twitter_username = ?) AND (sfd.delivery_dt IS NULL)
+    `, [id, author])
+      .fetch<number>((rows) => rows.map((row) => row.id))
+      .then(missing => Array.isArray(missing) && missing.length === 1 ? missing[0] > 0 : false);
+  }
+
   public follows(active: boolean = true): Promise<TwitterUser[]> {
     return this.findObjects(TwitterUser, `
-      SELECT f.id, f.username, f.ident_id
-      FROM twitter_follow AS f
-      WHERE (active = ?)
-      ORDER BY f.username
+        SELECT f.id, f.username, f.ident_id FROM twitter_follow AS f WHERE (active = ?) ORDER BY f.username
     `, [active]);
   }
 
@@ -34,28 +42,26 @@ class TweetStoreImpl extends MysqlClient implements TweetStore {
 
   public recentForIdentity(ident: Identity, count: number): Promise<Tweet[]> {
     return this.findObjects(Tweet, `
-      SELECT t.id, t.username, t.created, t.txt, t.html
-      FROM twitter_follow AS f
-             INNER JOIN tweet AS t ON (t.username = f.username)
-      WHERE (f.ident_id = ?)
-      ORDER BY t.created DESC
-      LIMIT ?
+        SELECT t.id, t.username, t.created, t.txt, t.html
+        FROM twitter_follow AS f
+            INNER JOIN tweet AS t ON (t.username = f.username)
+        WHERE (f.ident_id = ?)
+        ORDER BY t.created DESC
+        LIMIT ?
     `, [ident.id, count]);
   }
 
   protected selectOne(fieldName: string): string {
     return `
-      SELECT id, username, created, txt, html
-      FROM tweet
+        SELECT id, username, created, txt, html FROM tweet
     `;
   }
 
   public store(tweet: Tweet): Promise<boolean> {
     return this
       .query(`
-        INSERT IGNORE INTO tweet (id, username, created, txt, html)
-        VALUES (?, ?, ?, ?, ?)
-        ;
+          INSERT IGNORE INTO tweet (id, username, created, txt, html) VALUES (?, ?, ?, ?, ?)
+          ;
       `, [
         tweet.id,
         tweet.user.name,
