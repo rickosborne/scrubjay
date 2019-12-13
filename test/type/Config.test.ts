@@ -7,6 +7,11 @@ describe('Config', () => {
     const json = {
       outputPath: 'output/path',
       baseUrl: 'base/url',
+      aws: {
+        accessKeyId: 'some-access-key',
+        region: 'some-region',
+        secretAccessKey: 'some-secret-access-key',
+      },
       twitter: {
         accessTokenKey: 'foo',
         accessTokenSecret: 'bar',
@@ -52,5 +57,8 @@ describe('Config', () => {
     expect(config.mysql.password).to.equal(json.mysql.password);
     expect(config.mysql.port).to.equal(json.mysql.port);
     expect(config.mysql.host).to.equal(json.mysql.host);
+    expect(config.aws.accessKeyId).to.equal(json.aws.accessKeyId);
+    expect(config.aws.secretAccessKey).to.equal(json.aws.secretAccessKey);
+    expect(config.aws.region).to.equal(json.aws.region);
   });
 });

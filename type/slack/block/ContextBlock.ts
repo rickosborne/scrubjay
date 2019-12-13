@@ -1,8 +1,6 @@
 import {KnownBlockable, SlackBlock} from './SlackBlock';
 import * as client from '@slack/web-api';
-import {SlackId} from '../RTEvent';
 import {buildAndCall} from '../SlackFormatBuilder';
-import {UserBlock} from './UserBlock';
 import {PlainTextBlock} from './PlainTextBlock';
 import {MarkdownTextBlock} from './MarkdownTextBlock';
 import {ImageElement} from './ImageElement';
@@ -12,7 +10,7 @@ export class ContextBlock extends SlackBlock implements KnownBlockable {
   static readonly TYPE = 'context';
 
   constructor(
-    public readonly elements: (ImageElement | UserBlock | PlainTextBlock | MarkdownTextBlock)[],
+    public readonly elements: (ImageElement | PlainTextBlock | MarkdownTextBlock)[],
     blockId?: string
   ) {
     super(ContextBlock.TYPE, blockId);
@@ -37,11 +35,6 @@ export class ContextBlock extends SlackBlock implements KnownBlockable {
 
   public plainText(text: string, emoji: boolean = false, callback: (plainText: PlainTextBlock) => void): this {
     buildAndCall(new PlainTextBlock(text, emoji), this.elements, callback);
-    return this;
-  }
-
-  public user(userId: SlackId, callback: (user: UserBlock) => void): this {
-    buildAndCall(new UserBlock(userId), this.elements, callback);
     return this;
   }
 }

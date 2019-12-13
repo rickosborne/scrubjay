@@ -105,7 +105,8 @@ describe('MysqlClient', () => {
           expect(result).to.equal(undefined);
         } catch (e) {
           caughtError = true;
-          expect(e).to.equal(error);
+          expect(e).to.be.instanceOf(Error);
+          expect(e.message).to.match(/Query: some sql ; Error:/);
         }
         expect(caughtError).to.equal(true);
       });

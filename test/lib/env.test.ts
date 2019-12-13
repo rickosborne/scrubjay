@@ -1,6 +1,6 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
-import {Env} from '../../lib/env';
+import {Env, TestableEnv} from '../../lib/env';
 import {buildFromObject} from '../../type/FromObject';
 import {PathLike} from 'fs';
 import {LogSwitch} from '../../type/Logger';
@@ -37,7 +37,7 @@ describe('Env', () => {
         for (const value of vals) {
           const label: string = typeof value === 'symbol' ? value.toString() : JSON.stringify(value);
           it(`reads ${key} = <${typeof value}> ${label}`, () => {
-            callback(expect((new Env(noopLogSwitch, {[key]: value}, noopFileSystem)).isDebug));
+            callback(expect((new TestableEnv(noopLogSwitch, {[key]: value}, noopFileSystem)).isDebug));
           });
         }
       }
@@ -48,7 +48,7 @@ describe('Env', () => {
   });
 
   describe('readable', () => {
-    const env = new Env(noopLogSwitch, {}, noopFileSystem);
+    const env = new TestableEnv(noopLogSwitch, {}, noopFileSystem);
     it('handles null', () => {
       expect(env.readable(null)).to.equal('<null>');
     });
@@ -68,16 +68,16 @@ describe('Env', () => {
 
   describe('param', () => {
     it('throws if needed', () => {
-      expect(() => (new Env(noopLogSwitch, {}, noopFileSystem)).param('foo')).throws(/Missing required parameter: foo/);
+      expect(() => (new TestableEnv(noopLogSwitch, {}, noopFileSystem)).param('foo')).throws(/Missing required parameter: foo/);
     });
     it('finds params', () => {
-      expect((new Env(noopLogSwitch, {FOO: 123}, noopFileSystem)).param('FOO')).to.equal(123);
+      expect((new TestableEnv(noopLogSwitch, {FOO: 123}, noopFileSystem)).param('FOO')).to.equal(123);
     });
     it('uses default values', () => {
-      expect((new Env(noopLogSwitch, {}, noopFileSystem)).param('FOO', '456')).to.equal('456');
+      expect((new TestableEnv(noopLogSwitch, {}, noopFileSystem)).param('FOO', '456')).to.equal('456');
     });
     it('uses the converter', () => {
-      expect((new Env(noopLogSwitch, {'FOO': 123}, noopFileSystem)).param('FOO', 456, v => parseInt(v, 10))).to.equal(123);
+      expect((new TestableEnv(noopLogSwitch, {'FOO': 123}, noopFileSystem)).param('FOO', 456, v => parseInt(v, 10))).to.equal(123);
     });
   });
 
@@ -85,7 +85,7 @@ describe('Env', () => {
     it('does not log if not debug', () => {
       const info: string[] = [];
       const err: string[] = [];
-      expect(() => (new Env({
+      expect(() => (new TestableEnv({
         info: msg => info.push(msg),
         error: msg => err.push(msg),
         onInfo: () => {
@@ -99,7 +99,7 @@ describe('Env', () => {
     it('does log if debug', () => {
       const info: string[] = [];
       const err: string[] = [];
-      expect(() => (new Env({
+      expect(() => (new TestableEnv({
         info: msg => info.push(msg),
         error: msg => err.push(msg),
         onInfo: () => {
@@ -113,7 +113,7 @@ describe('Env', () => {
     it('does log errors if present', () => {
       const info: string[] = [];
       const err: string[] = [];
-      expect(() => (new Env({
+      expect(() => (new TestableEnv({
         info: msg => info.push(msg),
         error: msg => err.push(msg),
         onInfo: () => {
@@ -130,7 +130,7 @@ describe('Env', () => {
     it('does what it says on the tin', () => {
       const info: string[] = [];
       const err: string[] = [];
-      expect(() => (new Env({
+      expect(() => (new TestableEnv({
         info: msg => info.push(msg),
         error: msg => err.push(msg),
         onInfo: () => {
@@ -159,7 +159,7 @@ describe('Env', () => {
 
     it('works as expected', () => {
       // noinspection JSUnusedLocalSymbols
-      const testable = (new Env(noopLogSwitch, {}, {
+      const testable = (new TestableEnv(noopLogSwitch, {}, {
         appendFile: () => {},
         readFileSync(path: PathLike | number, options: { encoding: string; flag?: string } | string): string {
           return JSON.stringify({

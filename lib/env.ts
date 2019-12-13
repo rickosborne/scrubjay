@@ -115,3 +115,5 @@ class EnvImpl implements Env {
 
 const env: Env = Env.getInstance();
 export default env;
+
+export const TestableEnv: typeof EnvImpl = EnvImpl;
