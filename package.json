@@ -6,6 +6,7 @@
   "dependencies": {
     "@slack/rtm-api": "^5.0.3",
     "@slack/web-api": "^5.6.0",
+    "aws-lambda": "^1.0.5",
     "aws-sdk": "^2.589.0",
     "inclined-plane": "^0.5.3",
     "mysql2": "^1.7.0",
@@ -14,6 +15,8 @@
     "twitter": "^1.7.1"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.40",
+    "@types/aws-sdk": "^2.7.0",
     "@types/chai": "^4.2.7",
     "@types/ejs": "^2.7.0",
     "@types/mocha": "^5.2.7",
@@ -34,6 +37,7 @@
     "utf-8-validate": "^5.0.2",
     "webpack": "^4.41.2",
     "webpack-cli": "^3.3.10",
+    "webpack-node-externals": "^1.7.2",
     "wtfnode": "^0.8.0"
   },
   "name": "scrubjay",
@@ -46,6 +50,7 @@
     "lint": "tslint -c tslint.json -p tsconfig.json --fix",
     "package": "npm run package:scrubjay && npm run package:feeder && npm run package:song",
     "package:scrubjay": "webpack-cli --config song.webpack.config.js",
+    "package:slash-lambda": "webpack-cli --config slash-lambda.webpack.config.js",
     "package:song": "webpack-cli --config song.webpack.config.js",
     "package:feeder": "webpack-cli --config feeder.webpack.config.js",
     "precompile": "npm run clean && npm run lint",

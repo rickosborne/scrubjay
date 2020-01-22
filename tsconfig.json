@@ -9,7 +9,7 @@
       "es2016",
       "dom"
     ],
-    "module": "es6",
+    "module": "ESNext",
     "moduleResolution": "node",
     "noImplicitAny": true,
     "outDir": "./dist/out-tsc",
@@ -19,7 +19,7 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
-    "target": "es6",
+    "target": "ESNext",
     "typeRoots": [
       "node_modules/@types"
     ]

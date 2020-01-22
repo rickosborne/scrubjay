@@ -10,7 +10,7 @@ import {TwitterConfig} from '../config/TwitterConfig';
 import {NotifyQueue} from '../NotifyQueue';
 
 @TwitterClient.implementation
-class TwitterClientImpl implements TwitterClient {
+export class TwitterClientImpl implements TwitterClient {
 
   private readonly _stream: boolean;
   private stream?: EventEmitter;
