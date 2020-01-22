@@ -80,7 +80,7 @@ export const handler = async function (
         const commandText = unescape((bodyParts['text'] as string) || '');
         const commandParts = commandText.split(/\s+/g);
         if (commandText === '' || commandText === 'help' || (commandParts.length > 0 && commandParts[0] === 'help')) {
-            return respond('Usage:\n`/twit json twitName`');
+            return respond('Usage:\n`/twit json twitName`\n`/twit echo`');
         }
         switch (commandParts[0]) {
             case 'json':
@@ -119,8 +119,8 @@ export const handler = async function (
                     return respond('Could not find that twit: `' + twitName + '`');
                 }
                 return respond(twit);
-            case 'publish':
-                return respond('Not implemented');
+            case 'echo':
+                return respond(bodyParts);
             case 'unpublish':
                 return respond('Not implemented');
             default:
