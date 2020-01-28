@@ -1,11 +1,9 @@
 import {APIGatewayEvent, Context} from 'aws-lambda';
 import * as crypto from 'crypto';
-// import {DynamoDB} from 'aws-sdk';
-import {TwitterClientImpl} from "./type/twitter/TwitterClient.impl";
-import {TwitterConfigImpl} from "./type/config/ScrubjayConfig.impl";
+import {TwitterClientImpl} from './type/twitter/TwitterClient.impl';
+import {TwitterConfigImpl} from './type/config/ScrubjayConfig.impl';
 
 const SLACK_SIGNING_KEY = process.env['SLACK_SIGNING_KEY'] || '';
-const AWS_REGION = process.env['AWS_REGION'] || '';
 
 interface Response {
     body: string;
@@ -33,7 +31,11 @@ export const handler = async function (
     context: Context,
 ): Promise<Response> {
     try {
-        if (event == null || event.headers == null || event.headers['X-Slack-Signature'] == null || event.headers['X-Slack-Request-Timestamp'] == null || SLACK_SIGNING_KEY === '') {
+        if (event == null ||
+            event.headers == null ||
+            event.headers['X-Slack-Signature'] == null ||
+            event.headers['X-Slack-Request-Timestamp'] == null ||
+            SLACK_SIGNING_KEY === '') {
             return respond('Slack integration looks busted — could not get X-Slack-Signature');
         }
         const givenSlackSignature = event.headers['X-Slack-Signature'];
@@ -43,11 +45,12 @@ export const handler = async function (
             return respond('Slack integration looks busted — could not get the request body');
         }
         if (event.headers['Content-Type'] !== 'application/x-www-form-urlencoded') {
-            return respond('Slack integration looks busted — expected application/x-www-form-urlencoded content type, got: ' + event.headers['Content-Type']);
+            return respond('Slack integration looks busted — expected application/x-www-form-urlencoded content type, got: ' +
+                event.headers['Content-Type']);
         }
         const body = event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf-8') : event.body;
         const bodyParts: { [key: string]: string | string[]; } = {};
-        for (let pair of body.split('&')) {
+        for (const pair of body.split('&')) {
             const keyAndValue = pair.split('=');
             const key = decodeURIComponent(keyAndValue[0].replace(/\+/g, ' '));
             const value = decodeURIComponent(keyAndValue[1].replace(/\+/g, ' '));
@@ -86,7 +89,8 @@ export const handler = async function (
             case 'json':
                 const twitName = commandParts[1];
                 if (commandParts.length !== 2 || twitName == null || !twitName.match(/^[-a-z0-9_]+$/i)) {
-                    return respond('Usage: `/twit json twitName` (don\'t include the `@`)\nCommand: `' + JSON.stringify(commandParts) + '`\nTwit: `' + twitName + '`');
+                    return respond('Usage: `/twit json twitName` (don\'t include the `@`)\nCommand: `' +
+                        JSON.stringify(commandParts) + '`\nTwit: `' + twitName + '`');
                 }
                 // const dynamo = new DynamoDB({
                 //     region: AWS_REGION
@@ -124,7 +128,7 @@ export const handler = async function (
             case 'unpublish':
                 return respond('Not implemented');
             default:
-                return respond("Sorry, I don't know that command:\n```\n" + commandText + "\n```");
+                return respond('Sorry, I don\'t know that command:\n```\n' + commandText + '\n```');
         }
     } catch (e) {
         return respond('Slack integration looks busted — got an error:\n```\n' + JSON.stringify(e, null, '\t') + '\n```');

@@ -48,7 +48,7 @@
     "clean": "rm -Rf dist",
     "compile": "tsc",
     "lint": "tslint -c tslint.json -p tsconfig.json --fix",
-    "package": "npm run package:scrubjay && npm run package:feeder && npm run package:song",
+    "package": "npm run package:scrubjay && npm run package:feeder && npm run package:song && npm run package:slash-lambda",
     "package:scrubjay": "webpack-cli --config song.webpack.config.js",
     "package:slash-lambda": "webpack-cli --config slash-lambda.webpack.config.js",
     "package:song": "webpack-cli --config song.webpack.config.js",
