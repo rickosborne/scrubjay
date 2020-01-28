@@ -5,6 +5,7 @@ import {Chunk, SlackTweetFormatterImpl} from '../../type/slack/SlackTweetFormatt
 import {extendedTweetWithVideoJson} from '../fixture/extendedTweetWithVideo';
 import {tweetWithBrokenLinkReplacementJson} from '../fixture/tweetWithBrokenLinkReplacement';
 import {tweetQuotedWithEmojisJson} from '../fixture/tweetQuotedWithEmojis';
+import {tweetWithTrailingHashtagJson} from '../fixture/tweetWithTrailingHashtag';
 import {tweetWithVideoJson} from '../fixture/tweetWithVideo';
 import {TweetEntities} from '../../type/twitter/TweetEntities';
 import {Tweet} from '../../type/twitter/Tweet';
@@ -16,6 +17,7 @@ const tweetQuotedWithEmojis: Tweet = Tweet.fromObject(tweetQuotedWithEmojisJson)
 const tweetWithVideo: Tweet = Tweet.fromObject(tweetWithVideoJson);
 const extendedTweetWithVideo: Tweet = Tweet.fromObject(extendedTweetWithVideoJson);
 const tweetWithBrokenLinkReplacement: Tweet = Tweet.fromObject(tweetWithBrokenLinkReplacementJson);
+const tweetWithTrailingHashtag: Tweet = Tweet.fromObject(tweetWithTrailingHashtagJson);
 
 describe('SlackTweetFormatter', () => {
   class TestableSlackTweetFormatter extends SlackTweetFormatterImpl {
@@ -110,9 +112,16 @@ describe('SlackTweetFormatter', () => {
     });
     it('correctly replaces links', () => {
       const formatter = new TestableSlackTweetFormatter();
-      const messages: PostableMessage[] = formatter.messagesFromTweet(tweetWithBrokenLinkReplacement)
+      const messages: PostableMessage[] = formatter.messagesFromTweet(tweetWithBrokenLinkReplacement);
       const texts = textsFromMessages(messages);
       expect(texts[0]).equals('*<https://twitter.com/VoiceOfOBrien|:bird:VoiceOfOBrien>* (Liam O\'Brien) retweeted <https://twitter.com/marcorubio|:bird:marcorubio> (Marco Rubio):\nI know John Bolton well, he is an excellent choice who will do an great job as National Security Advisor. General McMaster has served and will continue to serve our nation well. We should all be grateful to him for his service.');
+    });
+    it('does not duplicate trailing hashtags', () => {
+      const formatter = new TestableSlackTweetFormatter();
+      const messages: PostableMessage[] = formatter.messagesFromTweet(tweetWithTrailingHashtag);
+      const texts = textsFromMessages(messages);
+      expect(texts[0]).equals('*<https://twitter.com/ChaiKovsky|:bird:ChaiKovsky>* (Sam de Leve) retweeted <https://twitter.com/Xanderrific|:bird:Xanderrific> (Xander Jeanneret):\n' +
+          'Friends! I’m going to be doing something a little different today: I’ll be playing <https://twitter.com/trekonlinegame|:bird:trekonlinegame> (PC) today at 1:00pm PT! Feel free to join me, along with the _#Fannerets_ over at <http://twitch.tv/xanderrific|twitch.tv/xanderrific> (I’ll still be playing Pokémon in the future!) _#ClearSkiesRPG_');
     });
   });
 });

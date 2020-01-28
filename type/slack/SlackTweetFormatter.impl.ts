@@ -151,10 +151,13 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     return unorderedChunks.sort((a, b) => a.left - b.left);
   }
 
+  /**
+   * Returns an offset/delta to adjust the chunk to completely hack unicode nonsense.
+   */
   // noinspection JSMethodCanBeStatic
   protected findFudge(haystack: string, needle: string, left: number, right: number, fudge: number): number {
     if (haystack.substr(left, right) === needle) {
-      return left;
+      return 0;  // it's right where we expect it to be
     }
     const fudgedLeftA = Math.max(0, left - Math.abs(fudge));
     const fudgedLeftB = Math.max(0, left + Math.abs(fudge));
