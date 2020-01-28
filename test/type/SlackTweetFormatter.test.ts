@@ -3,6 +3,7 @@ import {describe, it, beforeEach} from 'mocha';
 import {DelayedRenderActions, SlackTweetFormatter, TweetRenderingFlags} from '../../type/slack/SlackTweetFormatter';
 import {Chunk, SlackTweetFormatterImpl} from '../../type/slack/SlackTweetFormatter.impl';
 import {extendedTweetWithVideoJson} from '../fixture/extendedTweetWithVideo';
+import {tweetWithBrokenLinkReplacementJson} from '../fixture/tweetWithBrokenLinkReplacement';
 import {tweetQuotedWithEmojisJson} from '../fixture/tweetQuotedWithEmojis';
 import {tweetWithVideoJson} from '../fixture/tweetWithVideo';
 import {TweetEntities} from '../../type/twitter/TweetEntities';
@@ -14,6 +15,7 @@ import {ImageElement, MrkdwnElement, PlainTextElement} from '@slack/types';
 const tweetQuotedWithEmojis: Tweet = Tweet.fromObject(tweetQuotedWithEmojisJson);
 const tweetWithVideo: Tweet = Tweet.fromObject(tweetWithVideoJson);
 const extendedTweetWithVideo: Tweet = Tweet.fromObject(extendedTweetWithVideoJson);
+const tweetWithBrokenLinkReplacement: Tweet = Tweet.fromObject(tweetWithBrokenLinkReplacementJson);
 
 describe('SlackTweetFormatter', () => {
   class TestableSlackTweetFormatter extends SlackTweetFormatterImpl {
@@ -62,6 +64,9 @@ describe('SlackTweetFormatter', () => {
               if (block.text != null) {
                 texts.push(block.text.text);
               }
+              break;
+            default:
+              throw new Error(`Unhandled block type: ${block.type}`);
           }
         });
       } else {
@@ -102,6 +107,12 @@ describe('SlackTweetFormatter', () => {
       const messages: PostableMessage[] = formatter.messagesFromTweet(extendedTweetWithVideo);
       const texts = textsFromMessages(messages);
       expect(texts[1]).equals('<https://video.twimg.com/ext_tw_video/1221545008563658753/pu/vid/1280x720/AC9CgEvE9eScD92a.mp4?tag=10>');
+    });
+    it('correctly replaces links', () => {
+      const formatter = new TestableSlackTweetFormatter();
+      const messages: PostableMessage[] = formatter.messagesFromTweet(tweetWithBrokenLinkReplacement)
+      const texts = textsFromMessages(messages);
+      expect(texts[0]).equals('*<https://twitter.com/VoiceOfOBrien|:bird:VoiceOfOBrien>* (Liam O\'Brien) retweeted <https://twitter.com/marcorubio|:bird:marcorubio> (Marco Rubio):\nI know John Bolton well, he is an excellent choice who will do an great job as National Security Advisor. General McMaster has served and will continue to serve our nation well. We should all be grateful to him for his service.');
     });
   });
 });

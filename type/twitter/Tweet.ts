@@ -38,19 +38,16 @@ export class Tweet {
   }
 
   get longText(): string {
-    if (this.extended != null && this.extended.text != null) {
-      return this.extended.text;
-    }
     if (this.retweeted != null) {
       return this.retweeted.longText;
+    }
+    if (this.extended != null && this.extended.text != null) {
+      return this.extended.text;
     }
     return this.text;
   }
 
   get longTextEntities(): TweetEntities | undefined {
-    if (this._entities != null && Object.keys(this._entities).length > 0) {
-      return this._entities;
-    }
     if (this.retweeted != null) {
       return this.retweeted.longTextEntities;
     }
