@@ -8,6 +8,7 @@ export interface Indexed {
 }
 
 export class Tweet {
+  private readonly _entities: TweetEntities;
 
   // noinspection JSUnusedGlobalSymbols
   constructor(
@@ -17,6 +18,7 @@ export class Tweet {
     public readonly created?: Date,
     public readonly extended?: ExtendedTweet,
     public readonly entities?: TweetEntities,
+    public readonly extendedEntities?: TweetEntities,
     public readonly truncated?: boolean,
     public readonly quoted?: Tweet,
     public readonly isQuote?: boolean,
@@ -28,6 +30,11 @@ export class Tweet {
     public readonly source?: any,
   ) {
     this._text = (extended != null && extended.text != null) ? extended.text : text;
+    this._entities = Object.assign({},
+        entities,
+        this.extended != null && this.extended.entities != null ? this.extended.entities : {},
+        extendedEntities,
+    );
   }
 
   get longText(): string {
@@ -41,13 +48,13 @@ export class Tweet {
   }
 
   get longTextEntities(): TweetEntities | undefined {
-    if (this.extended != null && this.extended.entities != null) {
-      return this.extended.entities;
+    if (this._entities != null && Object.keys(this._entities).length > 0) {
+      return this._entities;
     }
     if (this.retweeted != null) {
       return this.retweeted.longTextEntities;
     }
-    return this.entities;
+    return this._entities;
   }
 
   private readonly _text: string;
@@ -60,6 +67,7 @@ export class Tweet {
       .date('created_at', false)
       .obj('extended_tweet', ExtendedTweet, false)
       .obj('entities', TweetEntities, false)
+      .obj('extended_entities', TweetEntities, false)
       .bool('truncated', false)
       .obj('quoted_status', Tweet, false)
       .bool('is_quote_status', false)

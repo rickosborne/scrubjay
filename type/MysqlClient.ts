@@ -139,7 +139,7 @@ export abstract class MysqlClient {
           if (this.env != null) {
             this.env.debug(`MysqlClient(${className}): Dropping connection ${this.connectionId}`);
           }
-          if (conn != null) {
+          if (conn != null && typeof conn.destroy === 'function') {
             conn.destroy();
           }
           this._db = undefined;

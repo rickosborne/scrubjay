@@ -2,6 +2,7 @@ import {expect} from 'chai';
 import {describe, it, beforeEach} from 'mocha';
 import {DelayedRenderActions, SlackTweetFormatter, TweetRenderingFlags} from '../../type/slack/SlackTweetFormatter';
 import {Chunk, SlackTweetFormatterImpl} from '../../type/slack/SlackTweetFormatter.impl';
+import {extendedTweetWithVideoJson} from '../fixture/extendedTweetWithVideo';
 import {tweetQuotedWithEmojisJson} from '../fixture/tweetQuotedWithEmojis';
 import {tweetWithVideoJson} from '../fixture/tweetWithVideo';
 import {TweetEntities} from '../../type/twitter/TweetEntities';
@@ -12,6 +13,7 @@ import {ImageElement, MrkdwnElement, PlainTextElement} from '@slack/types';
 
 const tweetQuotedWithEmojis: Tweet = Tweet.fromObject(tweetQuotedWithEmojisJson);
 const tweetWithVideo: Tweet = Tweet.fromObject(tweetWithVideoJson);
+const extendedTweetWithVideo: Tweet = Tweet.fromObject(extendedTweetWithVideoJson);
 
 describe('SlackTweetFormatter', () => {
   class TestableSlackTweetFormatter extends SlackTweetFormatterImpl {
@@ -94,6 +96,12 @@ describe('SlackTweetFormatter', () => {
       const messages: PostableMessage[] = formatter.messagesFromTweet(tweetWithVideo);
       const texts = textsFromMessages(messages);
       expect(texts[1]).equals('<https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/1280x720/vjCA_MjX5ZjWj8pX.mp4?tag=8>');
+    });
+    it('handles extended embedded videos', () => {
+      const formatter = new TestableSlackTweetFormatter();
+      const messages: PostableMessage[] = formatter.messagesFromTweet(extendedTweetWithVideo);
+      const texts = textsFromMessages(messages);
+      expect(texts[1]).equals('<https://video.twimg.com/ext_tw_video/1221545008563658753/pu/vid/1280x720/AC9CgEvE9eScD92a.mp4?tag=10>');
     });
   });
 });
