@@ -31,24 +31,29 @@ export function fixed(num: number, length: number = 2, prefix: string = '0'): st
 }
 
 export function getTimeHHMM(date: Date = new Date()) {
-  return fixed(date.getHours()) + ':' + fixed(date.getMinutes());
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return fixed(d.getHours()) + ':' + fixed(d.getMinutes());
 }
 
 export function getTimeHHMMSS(date: Date = new Date()) {
-  return getTimeHHMM(date) + ':' + fixed(date.getSeconds());
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return getTimeHHMM(d) + ':' + fixed(d.getSeconds());
 }
 
 export function getDateDDMMMYYYY(date: Date = new Date()) {
-  const month = MONTHS[date.getMonth()];
-  return `${fixed(date.getDate())} ${month} ${date.getFullYear()}`;
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const month = MONTHS[d.getMonth()];
+  return `${fixed(d.getDate())} ${month} ${d.getFullYear()}`;
 }
 
 export function getDateYYYYMMDD(date: Date = new Date()) {
-  return `${fixed(date.getFullYear())}-${fixed(date.getMonth() + 1)}-${fixed(date.getDate())}`;
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return `${fixed(date.getFullYear())}-${fixed(d.getMonth() + 1)}-${fixed(d.getDate())}`;
 }
 
 export function getLongDateTime(date: Date = new Date()): string {
-  const weekday = WEEKDAYS[date.getDay()];
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const weekday = WEEKDAYS[d.getDay()];
   const dt = getDateDDMMMYYYY(date);
   const time = getTimeHHMM(date);
   return `${weekday}, ${dt} at ${time}`;

@@ -40,13 +40,13 @@ class SongImpl {
     this.tweetQueue = sqsAdapter.queueForType<TweetJSON>(TweetJSON);
   }
 
-  protected onTweet(tweet: TweetJSON, followEmoji?: string | null): Promise<OnAvailableResult> {
+  protected async onTweet(tweet: TweetJSON, followEmoji?: string | null): Promise<OnAvailableResult> {
     const tweetImpl = Tweet.fromObject(tweet);
     if (tweetImpl == null) {
       this.env.debug(() => `SongImpl.onTweet: Failed to reify Tweet: ${JSON.stringify(tweet)}`);
       return Promise.resolve(OnAvailableResult.ERROR);
     }
-    const postables = this.tweetFormatter.messagesFromTweet(tweetImpl, {followEmoji});
+    const postables = await this.tweetFormatter.messagesFromTweet(tweetImpl, {followEmoji});
     if (!Array.isArray(postables)) {
       this.env.debug(() => `SongImpl.onTweet: Failed to format tweet: ${JSON.stringify(tweetImpl)}`);
       return Promise.resolve(OnAvailableResult.ERROR);

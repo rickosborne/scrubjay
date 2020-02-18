@@ -61,5 +61,5 @@
     "test": "TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' node ./node_modules/.bin/ts-mocha test/**/*.ts",
     "un-prestart": "npm run package"
   },
-  "version": "0.4.0"
+  "version": "0.4.1"
 }

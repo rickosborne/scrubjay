@@ -7,6 +7,7 @@ import {tweetWithBrokenLinkReplacementJson} from '../fixture/tweetWithBrokenLink
 import {tweetQuotedWithEmojisJson} from '../fixture/tweetQuotedWithEmojis';
 import {tweetWithTrailingHashtagJson} from '../fixture/tweetWithTrailingHashtag';
 import {tweetWithVideoJson} from '../fixture/tweetWithVideo';
+import {failingTweet1Json} from '../fixture/failingTweet1';
 import {TweetEntities} from '../../type/twitter/TweetEntities';
 import {Tweet} from '../../type/twitter/Tweet';
 import {PostableMessage} from '../../type/slack/PostableMessage';
@@ -19,6 +20,7 @@ const tweetWithVideo: Tweet = Tweet.fromObject(tweetWithVideoJson);
 const extendedTweetWithVideo: Tweet = Tweet.fromObject(extendedTweetWithVideoJson);
 const tweetWithBrokenLinkReplacement: Tweet = Tweet.fromObject(tweetWithBrokenLinkReplacementJson);
 const tweetWithTrailingHashtag: Tweet = Tweet.fromObject(tweetWithTrailingHashtagJson);
+const failingTweet1: Tweet = Tweet.fromObject(failingTweet1Json);
 
 describe('SlackTweetFormatter', () => {
   class TestableMediaTranscoder implements MediaTranscoder {
@@ -139,5 +141,18 @@ describe('SlackTweetFormatter', () => {
       expect(texts[0]).equals('*<https://twitter.com/ChaiKovsky|:bird:ChaiKovsky>* (Sam de Leve) retweeted <https://twitter.com/Xanderrific|:bird:Xanderrific> (Xander Jeanneret):\n' +
         'Friends! I’m going to be doing something a little different today: I’ll be playing <https://twitter.com/trekonlinegame|:bird:trekonlinegame> (PC) today at 1:00pm PT! Feel free to join me, along with the _#Fannerets_ over at <http://twitch.tv/xanderrific|twitch.tv/xanderrific> (I’ll still be playing Pokémon in the future!) _#ClearSkiesRPG_');
     });
+  });
+
+  it('formats the failing tweet', async () => {
+    const formatter = new TestableSlackTweetFormatter();
+    const messages = await formatter.messagesFromTweet(failingTweet1);
+    const texts = textsFromMessages(messages);
+    expect(texts).to.deep.equal([
+      "*<https://twitter.com/PocketGina|:bird:PocketGina>* (Gina DeVivo):\nWOOOOOOO",
+      "Quoted *<https://twitter.com/DiMRPG|:bird:DiMRPG>* (Descent Into Midnight):\n>We’ve hit our first stretch goal! Every backer gets the _#DiMRPG_ inspired coloring book PDF, plus a One Shot of DiM played by the incredible _#Streampunks_! At $35,000, we unlock an additional ep, printable Corruption/Harmony tokens, and files for 3D printer &amp; laser cutter tokens! <https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg|pic.twitter.com/xE1kpAjhrr>",
+      "<https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg>",
+      "<https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg>",
+      "<https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg>",
+    ]);
   });
 });

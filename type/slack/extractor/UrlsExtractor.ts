@@ -11,7 +11,7 @@ export class UrlsExtractor implements EntityExtractor<TweetUrl> {
   }
 
   async convert(item: TweetUrl, flags?: TweetRenderingFlags, later?: DelayedRenderActions): Promise<string> {
-    return `<${item.expanded}|${item.display}>`;
+    return item.display == null ? `<${item.expanded}>` : `<${item.expanded}|${item.display}>`;
   }
 
   originalText(item: TweetUrl): string {
