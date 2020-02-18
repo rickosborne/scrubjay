@@ -85,6 +85,9 @@ function regexify(stringOrPattern: string | RegExp): RegExp {
 // noinspection JSUnusedGlobalSymbols
 export class SlackBotImpl implements SlackBot {
 
+  private readonly _startTime: Date = new Date();
+  private readonly commands: SlackBotCommand[] = [];
+
   protected constructor(
     private readonly slackClient: SlackClient,
     private readonly slackFeedStore: FeedStore,
@@ -107,9 +110,6 @@ export class SlackBotImpl implements SlackBot {
     const elapsedMS = (new Date()).valueOf() - this._startTime.valueOf();
     return formatDurationMS(elapsedMS);
   }
-
-  private readonly _startTime: Date = new Date();
-  private readonly commands: SlackBotCommand[] = [];
 
   @SlackBot.supplier
   public static getInstance(
@@ -179,7 +179,7 @@ export class SlackBotImpl implements SlackBot {
     this.slackClient.replyTo(regexify(key), lines.join('\n'));
   }
 
-  public messagesFromTweet(tweet: Tweet, options: RenderOptions = {}): PostableMessage[] {
+  public async messagesFromTweet(tweet: Tweet, options: RenderOptions = {}): Promise<PostableMessage[]> {
     return this.slackTweetFormatter.messagesFromTweet(tweet, options);
   }
 
@@ -324,7 +324,7 @@ export class SlackBotImpl implements SlackBot {
         .reply(() => this.configStore.followEmoji
           .then(followEmoji => this.twitterEventStore
             .latest()
-            .then(tweet => {
+            .then(async (tweet) => {
               if (tweet == null) {
                 return `No tweets tracked at the moment.`;
               }
@@ -337,7 +337,7 @@ export class SlackBotImpl implements SlackBot {
         .reply(() => this.configStore.followEmoji
           .then(followEmoji => this.twitterEventStore
             .latest(true)
-            .then(tweet => {
+            .then(async (tweet) => {
               if (tweet == null) {
                 return `No retweets tracked at the moment.`;
               }
@@ -350,7 +350,7 @@ export class SlackBotImpl implements SlackBot {
         .reply(() => this.configStore.followEmoji
           .then(followEmoji => this.twitterEventStore
             .latest(false, true)
-            .then(tweet => {
+            .then(async (tweet) => {
               if (tweet == null) {
                 return `No replies tracked at the moment.`;
               }
@@ -404,7 +404,7 @@ export class SlackBotImpl implements SlackBot {
     this.command('tweet', undefined, onTweet => onTweet
       .param('statusId', 'Show a specific tweet', statusIdParam => statusIdParam
         .reply((message, actions, statusId) => this.configStore.followEmoji.then(followEmoji => this.twitterEventStore
-            .findById(statusId).then(tweet => {
+            .findById(statusId).then(async (tweet) => {
               if (tweet == null) {
                 return `I don't have a record of that tweet.`;
               }

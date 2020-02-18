@@ -35,8 +35,8 @@ migrator.onReady(() => {
         feedStore
           .channelsFor(tweet.user)
           .then(channels => configStore.followEmoji
-            .then(followEmoji => {
-              const messages = slackBot.messagesFromTweet(tweet, {followEmoji});
+            .then(async (followEmoji) => {
+              const messages = await slackBot.messagesFromTweet(tweet, {followEmoji});
               env.debug(() => `#${channels.map(c => c.name).join('|#')} ${JSON.stringify(messages)}`);
               for (const message of messages) {
                 for (const channel of channels) {

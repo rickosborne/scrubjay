@@ -8,26 +8,22 @@ import {getLongDateTime} from '../../lib/time';
 import {PostableMessage} from './PostableMessage';
 import {KnownBlockable} from './block/SlackBlock';
 import * as slack from '@slack/web-api';
-import {DelayedRenderActions, FOLLOW_EMOJI_DEFAULT, SlackTweetFormatter, TweetRenderingFlags} from './SlackTweetFormatter';
-import {TweetHashtag} from '../twitter/TweetHashtag';
-import {TweetUrl} from '../twitter/TweetUrl';
-import {TweetMedia} from '../twitter/TweetMedia';
-import {TweetMention} from '../twitter/TweetMention';
-import {TweetSymbol} from '../twitter/TweetSymbol';
+import {
+  DelayedRenderActions,
+  FOLLOW_EMOJI_DEFAULT,
+  SlackTweetFormatter,
+  TweetRenderingFlags
+} from './SlackTweetFormatter';
 import {Channel} from './Channel';
 import {FeedChannel} from './FeedStore';
 import {RenderOptions} from './SlackBot';
-
-export interface EntityExtractor<T extends Indexed> {
-
-  pad: boolean;
-
-  access(entities: TweetEntities): T[] | null | undefined;
-
-  convert(item: T, flags?: TweetRenderingFlags, later?: DelayedRenderActions): string;
-
-  originalText(item: T): string;
-}
+import {EntityExtractor} from './extractor/EntityExtractor';
+import {HashtagExtractor} from './extractor/HashtagExtractor';
+import {UrlsExtractor} from './extractor/UrlsExtractor';
+import {MediaExtractor} from './extractor/MediaExtractor';
+import {MentionsExtractor} from './extractor/MentionsExtractor';
+import {SymbolsExtractor} from './extractor/SymbolsExtractor';
+import {MediaTranscoder} from '../aphelocoma/MediaTranscoder';
 
 export interface Chunk {
   converted: string;
@@ -37,58 +33,21 @@ export interface Chunk {
   right: number;
 }
 
-const extractors: EntityExtractor<Indexed>[] = [
-  {
-    access: ents => ents.hashtags,
-    convert: (hashtag: TweetHashtag) => `_#${hashtag.text}_`,
-    originalText: (item: TweetHashtag) => `#${item.text}`,
-    pad: true,
-  },
-  {
-    access: ents => ents.urls,
-    convert: (url: TweetUrl) => `<${url.expanded}|${url.display}>`,
-    originalText: (item: TweetUrl) => item.url,
-    pad: true,
-  },
-  {
-    access: ents => ents.media,
-    convert: (media: TweetMedia, flags: TweetRenderingFlags, later: DelayedRenderActions) => {
-      if (media.videoInfo != null && media.videoInfo.variants != null) {
-        const best = media.videoInfo.variants
-          .filter(variant => variant != null
-            && variant.url != null
-            && variant.bitrate != null
-            && variant.contentType === TweetMedia.VIDEO_MP4)
-          .reduce((left, right) => left == null ? right : right == null ? left : (left.bitrate || 0) > (right.bitrate || 0) ? left : right);
-        if (best != null && best.url != null) {
-          later.addMessage(PostableMessage.fromText(`<${best.url}>`));
-        }
-      } else if (media.url != null) {
-        later.addMessage(PostableMessage.fromText(`<${media.url}>`));
-      }
-      return `<${media.url}|${media.displayUrl}>`;
-    },
-    originalText: (item: TweetMedia) => item.url,
-    pad: true
-  },
-  {
-    access: ents => ents.mentions,
-    convert: (mention: TweetMention, flags: TweetRenderingFlags) => {
-      return `<https://twitter.com/${mention.name}|:${flags.followEmoji || FOLLOW_EMOJI_DEFAULT}:${mention.name}>`;
-    },
-    originalText: (item: TweetMention) => `@${item.name}`,
-    pad: false,
-  },
-  {
-    access: ents => ents.symbols,
-    convert: (symbol: TweetSymbol) => `_${symbol.text}_`,
-    originalText: (item: TweetSymbol) => item.text,
-    pad: true
-  },
-];
-
 @SlackTweetFormatter.implementation
 export class SlackTweetFormatterImpl implements SlackTweetFormatter {
+  private readonly extractors: EntityExtractor<Indexed>[];
+
+  constructor(
+    @MediaTranscoder.required mediaTranscoder: MediaTranscoder
+  ) {
+    this.extractors = [
+      new HashtagExtractor(),
+      new UrlsExtractor(),
+      new MediaExtractor(mediaTranscoder),
+      new MentionsExtractor(),
+      new SymbolsExtractor(),
+    ];
+  }
 
   protected adjustChunks(chunks: Chunk[], originalText: string): Chunk[] {
     let fudge = 0;
@@ -113,7 +72,12 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     return new ImageBlock(img, `:${flags.followEmoji || FOLLOW_EMOJI_DEFAULT}:${tweet.user.name}`);
   }
 
-  protected blocksFromTweet(builder: SlackFormatBuilder, tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions) {
+  protected async blocksFromTweet(
+    builder: SlackFormatBuilder,
+    tweet: Tweet,
+    flags: TweetRenderingFlags,
+    later: DelayedRenderActions
+  ): Promise<void> {
     const fields: TextBlock[] = [];
     const quote = flags.inReplyTo || flags.retweeted || flags.quoted ? '>' : '';
     if (tweet.created != null) {
@@ -125,24 +89,23 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
       fields.push(new MarkdownTextBlock(`${quote}${originalLink}`));
     }
     builder.section(
-      new MarkdownTextBlock(this.markdownFromTweet(tweet, flags, later)),
+      new MarkdownTextBlock(await this.markdownFromTweet(tweet, flags, later)),
       fields.length === 0 ? undefined : fields,
       this.blockFromProfilePic(tweet, flags),
     );
   }
 
-  // noinspection JSMethodCanBeStatic
-  protected chunksForEntities(entities: TweetEntities, flags: TweetRenderingFlags, later: DelayedRenderActions): Chunk[] {
+  protected async chunksForEntities(entities: TweetEntities, flags: TweetRenderingFlags, later: DelayedRenderActions): Promise<Chunk[]> {
     const unorderedChunks: Chunk[] = [];
     if (entities != null) {
-      for (const extractor of extractors) {
+      for (const extractor of this.extractors) {
         const items = extractor.access(entities);
         if (!Array.isArray(items)) {
           continue;
         }
         for (const item of items) {
           const original = extractor.originalText(item);
-          const converted = extractor.convert(item, flags, later);
+          const converted = await extractor.convert(item, flags, later);
           const [left, right] = item.indices;
           unorderedChunks.push({converted, left, original, right, pad: extractor.pad});
         }
@@ -176,7 +139,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     return `<#${channel.id}|${channel.name}>`;
   }
 
-  protected markdownFromTweet(tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions): string {
+  protected async markdownFromTweet(tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions): Promise<string> {
     const attribution = tweet.user == null || tweet.user.name == null ? ''
       : `*${this.userLink(tweet.user.name, flags.followEmoji)}* (${this.slackEscape(tweet.user.fullName)})`;
     const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
@@ -185,14 +148,14 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     const lines = [`${explanation}${attribution}${retweeted}:`];
     const originalText: string = tweet.longText;
     const entities = tweet.longTextEntities;
-    const sparseChunks = entities == null ? [] : this.chunksForEntities(entities, flags, later);
+    const sparseChunks = entities == null ? [] : await this.chunksForEntities(entities, flags, later);
     const adjustedChunks = this.adjustChunks(sparseChunks, originalText);
     const result = this.replaceChunks(adjustedChunks, originalText, flags);
     lines.push(result);
     return lines.join('\n');
   }
 
-  public messagesFromTweet(tweet: Tweet, options: RenderOptions = {}): PostableMessage[] {
+  public async messagesFromTweet(tweet: Tweet, options: RenderOptions = {}): Promise<PostableMessage[]> {
     const messages: PostableMessage[] = [];
     const builder = new SlackFormatBuilder();
     const lateBlocks: KnownBlockable[] = [];
@@ -200,9 +163,9 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
       addMessage: (m: PostableMessage) => messages.push(m),
       addBlock: (block: KnownBlockable) => lateBlocks.push(block),
     };
-    this.blocksFromTweet(builder, tweet, options, later);
+    await this.blocksFromTweet(builder, tweet, options, later);
     if (tweet.quoted != null) {
-      this.blocksFromTweet(builder, tweet.quoted, Object.assign({quoted: true}, options), later);
+      await this.blocksFromTweet(builder, tweet.quoted, Object.assign({quoted: true}, options), later);
     }
     builder.blocks.push(...lateBlocks);
     const message = PostableMessage.fromBlocks(

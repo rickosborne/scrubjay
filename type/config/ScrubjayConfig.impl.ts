@@ -6,6 +6,7 @@ import {SlackConfig} from './SlackConfig';
 import {TwitterConfig, TwitterCredentials} from './TwitterConfig';
 import {boolish} from '../../lib/boolish';
 import {AWSConfig} from './AWSConfig';
+import {MediaConfig} from './MediaConfig';
 
 export class SlackConfigImpl implements SlackConfig {
   static fromObject(object: {}): SlackConfigImpl {
@@ -105,6 +106,19 @@ class AWSConfigImpl implements AWSConfig {
   }
 }
 
+export class MediaConfigImpl implements MediaConfig {
+  public static fromObject(object: {}): MediaConfigImpl {
+    return buildFromObject(MediaConfigImpl, object)
+      .string('transcoderUri')
+      .orThrow(message => new Error(`Could not create MediaConfig: ${message}`));
+  }
+
+  constructor(
+    public readonly transcoderUri: string,
+  ) {
+  }
+}
+
 class ScrubjayConfigImpl implements ScrubjayConfig {
   public static fromObject(object: {}): ScrubjayConfigImpl {
     return buildFromObject(ScrubjayConfigImpl, object)
@@ -114,6 +128,7 @@ class ScrubjayConfigImpl implements ScrubjayConfig {
       .obj('mysql', MysqlConfigImpl)
       .obj('slack', SlackConfigImpl)
       .obj('aws', AWSConfigImpl)
+      .obj('media', MediaConfigImpl)
       .string('version', false)
       .orThrow(message => new Error(`Could not build Config: ${message}`));
   }
@@ -144,6 +159,11 @@ class ScrubjayConfigImpl implements ScrubjayConfig {
     return scrubjayConfig.twitter;
   }
 
+  @MediaConfig.supplier
+  public static getMediaConfig(@ScrubjayConfig.required scrubjayConfig: ScrubjayConfig): MediaConfig {
+    return scrubjayConfig.media;
+  }
+
   constructor(
     public readonly outputPath: string,
     public readonly baseUrl: string,
@@ -151,7 +171,8 @@ class ScrubjayConfigImpl implements ScrubjayConfig {
     public readonly mysql: MysqlConfig,
     public readonly slack: SlackConfigImpl,
     public readonly aws: AWSConfig,
-    public readonly version?: string
+    public readonly media: MediaConfig,
+    public readonly version?: string,
   ) {
   }
 }

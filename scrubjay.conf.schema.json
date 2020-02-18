@@ -23,6 +23,16 @@
     "baseUrl": {
       "type": "string"
     },
+    "media": {
+      "properties": {
+        "transcoderUri": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "transcoderUri"
+      ]
+    },
     "mysql": {
       "properties": {
         "host": {

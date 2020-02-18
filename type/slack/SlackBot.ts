@@ -13,7 +13,7 @@ export interface SlackBot {
 
   help(key: string | RegExp): void;
 
-  messagesFromTweet(tweet: Tweet, options?: RenderOptions): PostableMessage[];
+  messagesFromTweet(tweet: Tweet, options?: RenderOptions): Promise<PostableMessage[]>;
 
   otherwise(messageSupplier: EventuallyPostable): void;
 

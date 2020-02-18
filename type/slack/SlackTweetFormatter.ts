@@ -24,7 +24,7 @@ export interface DelayedRenderActions {
 export interface SlackTweetFormatter {
   linkForChannel(channel: Channel | FeedChannel): string;
 
-  messagesFromTweet(tweet: Tweet, options?: RenderOptions): PostableMessage[];
+  messagesFromTweet(tweet: Tweet, options?: RenderOptions): Promise<PostableMessage[]>;
 
   slackEscape(s: string): string;
 

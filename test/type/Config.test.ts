@@ -16,7 +16,8 @@ describe('Config', () => {
         accessTokenKey: 'foo',
         accessTokenSecret: 'bar',
         consumerKey: 'consumer',
-        consumerSecret: 'secret'
+        consumerSecret: 'secret',
+        connectStream: true,
       },
       mysql: {
         schema: 'some schema',
@@ -33,6 +34,9 @@ describe('Config', () => {
         verificationToken: 'verify me',
         oauth: 'my voice is my password',
         botOAuth: 'what are you doing dave'
+      },
+      media: {
+        transcoderUri: 'some random uri'
       },
       version: 'some version'
     };
@@ -60,5 +64,6 @@ describe('Config', () => {
     expect(config.aws.accessKeyId).to.equal(json.aws.accessKeyId);
     expect(config.aws.secretAccessKey).to.equal(json.aws.secretAccessKey);
     expect(config.aws.region).to.equal(json.aws.region);
+    expect(config.media.transcoderUri).to.equal(json.media.transcoderUri);
   });
 });
