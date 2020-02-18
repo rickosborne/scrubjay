@@ -11,6 +11,8 @@ import './type/aws/AWSFileConfigurer';
 import './type/aws/SQSAdapter.impl';
 import './type/config/ScrubjayConfig.impl';
 import './type/config/ScrubjayConfigStore.impl';
+import './type/slack/extractor/MediaExtractor';
+import './type/aphelocoma/MediaTranscoder.impl';
 import './type/slack/SlackClient.impl';
 import './type/slack/SlackTweetFormatter.impl';
 import './type/slack/FeedStore.impl';
