@@ -111,35 +111,47 @@ describe('SlackTweetFormatter', () => {
   describe('messagesFromTweet', () => {
     it('handles embedded pics', async () => {
       const formatter = new TestableSlackTweetFormatter();
-      const messages: string[] = (await formatter.messagesFromTweet(tweetQuotedWithEmojis)).map(message => message.text);
-      expect(messages[0]).equals(`@Marisha_Ray: ?`);
-      expect(messages[1]).equals('<https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg>');
-      expect(messages[2]).equals('<https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg>');
+      const messages = await formatter.messagesFromTweet(tweetQuotedWithEmojis);
+      const texts = textsFromMessages(messages);
+      expect(texts).deep.equals([
+        "*<https://twitter.com/Marisha_Ray|:bird:Marisha_Ray>* (Marisha Ray):\n?\n>Quoted *<https://twitter.com/quortknee|:bird:quortknee>* (courtney?):\n>Finished up my _#CriticalRoleRedraw_ ! Left is from 2019, right is from 2016! ?\n>Keyleth is still extremely important to me, I will always be thankful to <https://twitter.com/Marisha_Ray|:bird:Marisha_Ray> for creating such a wonderful character.  Much love ♥️ _#CriticalRole_ _#criticalrolefanart_ <https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg|pic.twitter.com/7oU8eLD41B> <https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg|pic.twitter.com/7oU8eLD41B>",
+        "<https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg>",
+        "<https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg>",
+      ]);
     });
     it('handles embedded videos', async () => {
       const formatter = new TestableSlackTweetFormatter();
       const messages: PostableMessage[] = await formatter.messagesFromTweet(tweetWithVideo);
       const texts = textsFromMessages(messages);
-      expect(texts[1]).equals('<https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/1280x720/vjCA_MjX5ZjWj8pX.mp4>');
+      expect(texts).deep.equals([
+        "*<https://twitter.com/CriticalRole|:bird:CriticalRole>* (Critical Role):\n\"You don't have to be in something forever for it to have a lasting impression on your life.\" - <https://twitter.com/MaryEMcGlynn|:bird:MaryEMcGlynn>\n\nZahra Hydris herself joins <https://twitter.com/BrianWFoster|:bird:BrianWFoster> tonight for an all-new episode of _#BetweenTheSheets_! Live at 7pm Pacific on <http://twitch.tv/criticalrole|twitch.tv/criticalrole>. <https://pbs.twimg.com/ext_tw_video_thumb/1107678595399311360/pu/img/x3Ne8V8lErWowNTB.jpg|pic.twitter.com/6f25qmC9z4>",
+        "<https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/1280x720/vjCA_MjX5ZjWj8pX.mp4>"
+      ]);
     });
     it('handles extended embedded videos', async () => {
       const formatter = new TestableSlackTweetFormatter();
       const messages: PostableMessage[] = await formatter.messagesFromTweet(extendedTweetWithVideo);
       const texts = textsFromMessages(messages);
-      expect(texts[1]).equals('<https://video.twimg.com/ext_tw_video/1221545008563658753/pu/vid/1280x720/AC9CgEvE9eScD92a.mp4>');
+      expect(texts).deep.equals([
+        "*<https://twitter.com/WillingBlam|:bird:WillingBlam>* (Travis Willingham) retweeted:\n>*<https://twitter.com/SportsCenter|:bird:SportsCenter>* (SportsCenter):\n>Hug someone you love today.\n>\n>Well said, @RealJayWilliams. <https://pbs.twimg.com/ext_tw_video_thumb/1221545008563658753/pu/img/FRHF8stNwR8FN05-.jpg|pic.twitter.com/m9WnfP3sWn>",
+        "<https://video.twimg.com/ext_tw_video/1221545008563658753/pu/vid/1280x720/AC9CgEvE9eScD92a.mp4>",
+      ]);
     });
     it('correctly replaces links', async () => {
       const formatter = new TestableSlackTweetFormatter();
       const messages: PostableMessage[] = await formatter.messagesFromTweet(tweetWithBrokenLinkReplacement);
       const texts = textsFromMessages(messages);
-      expect(texts[0]).equals('*<https://twitter.com/VoiceOfOBrien|:bird:VoiceOfOBrien>* (Liam O\'Brien) retweeted <https://twitter.com/marcorubio|:bird:marcorubio> (Marco Rubio):\nI know John Bolton well, he is an excellent choice who will do an great job as National Security Advisor. General McMaster has served and will continue to serve our nation well. We should all be grateful to him for his service.');
+      expect(texts).deep.equals([
+        "*<https://twitter.com/VoiceOfOBrien|:bird:VoiceOfOBrien>* (Liam O'Brien) retweeted:\n>*<https://twitter.com/marcorubio|:bird:marcorubio>* (Marco Rubio):\n>I know John Bolton well, he is an excellent choice who will do an great job as National Security Advisor. General McMaster has served and will continue to serve our nation well. We should all be grateful to him for his service.",
+      ]);
     });
     it('does not duplicate trailing hashtags', async () => {
       const formatter = new TestableSlackTweetFormatter();
       const messages: PostableMessage[] = await formatter.messagesFromTweet(tweetWithTrailingHashtag);
       const texts = textsFromMessages(messages);
-      expect(texts[0]).equals('*<https://twitter.com/ChaiKovsky|:bird:ChaiKovsky>* (Sam de Leve) retweeted <https://twitter.com/Xanderrific|:bird:Xanderrific> (Xander Jeanneret):\n' +
-        'Friends! I’m going to be doing something a little different today: I’ll be playing <https://twitter.com/trekonlinegame|:bird:trekonlinegame> (PC) today at 1:00pm PT! Feel free to join me, along with the _#Fannerets_ over at <http://twitch.tv/xanderrific|twitch.tv/xanderrific> (I’ll still be playing Pokémon in the future!) _#ClearSkiesRPG_');
+      expect(texts).deep.equals([
+        "*<https://twitter.com/ChaiKovsky|:bird:ChaiKovsky>* (Sam de Leve) retweeted:\n>*<https://twitter.com/Xanderrific|:bird:Xanderrific>* (Xander Jeanneret):\n>Friends! I’m going to be doing something a little different today: I’ll be playing <https://twitter.com/trekonlinegame|:bird:trekonlinegame> (PC) today at 1:00pm PT! Feel free to join me, along with the _#Fannerets_ over at <http://twitch.tv/xanderrific|twitch.tv/xanderrific> (I’ll still be playing Pokémon in the future!) _#ClearSkiesRPG_"
+      ]);
     });
   });
 
@@ -148,8 +160,7 @@ describe('SlackTweetFormatter', () => {
     const messages = await formatter.messagesFromTweet(failingTweet1);
     const texts = textsFromMessages(messages);
     expect(texts).to.deep.equal([
-      "*<https://twitter.com/PocketGina|:bird:PocketGina>* (Gina DeVivo):\nWOOOOOOO",
-      "Quoted *<https://twitter.com/DiMRPG|:bird:DiMRPG>* (Descent Into Midnight):\n>We’ve hit our first stretch goal! Every backer gets the _#DiMRPG_ inspired coloring book PDF, plus a One Shot of DiM played by the incredible _#Streampunks_! At $35,000, we unlock an additional ep, printable Corruption/Harmony tokens, and files for 3D printer &amp; laser cutter tokens! <https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg|pic.twitter.com/xE1kpAjhrr>",
+      "*<https://twitter.com/PocketGina|:bird:PocketGina>* (Gina DeVivo):\nWOOOOOOO\n>Quoted *<https://twitter.com/DiMRPG|:bird:DiMRPG>* (Descent Into Midnight):\n>We’ve hit our first stretch goal! Every backer gets the _#DiMRPG_ inspired coloring book PDF, plus a One Shot of DiM played by the incredible _#Streampunks_! At $35,000, we unlock an additional ep, printable Corruption/Harmony tokens, and files for 3D printer &amp; laser cutter tokens! <https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg|pic.twitter.com/xE1kpAjhrr>",
       "<https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg>",
       "<https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg>",
       "<https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg>",

@@ -38,9 +38,9 @@ export class Tweet {
   }
 
   get longText(): string {
-    if (this.retweeted != null) {
-      return this.retweeted.longText;
-    }
+    // if (this.retweeted != null) {
+    //   return this.retweeted.longText;
+    // }
     if (this.extended != null && this.extended.text != null) {
       return this.extended.text;
     }

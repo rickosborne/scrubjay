@@ -77,7 +77,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     tweet: Tweet,
     flags: TweetRenderingFlags,
     later: DelayedRenderActions
-  ): Promise<void> {
+  ): Promise<string> {
     const fields: TextBlock[] = [];
     const quote = flags.inReplyTo || flags.retweeted || flags.quoted ? '>' : '';
     if (tweet.created != null) {
@@ -88,11 +88,26 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
       const originalLink = `<${this.twitterUrl(tweet.replyUser, tweet.replyTweetId)}|_In reply to ${tweet.replyUser}_>`;
       fields.push(new MarkdownTextBlock(`${quote}${originalLink}`));
     }
-    builder.section(
-      new MarkdownTextBlock(await this.markdownFromTweet(tweet, flags, later)),
-      fields.length === 0 ? undefined : fields,
-      this.blockFromProfilePic(tweet, flags),
-    );
+    let toQuote: string | undefined = undefined;
+    if (tweet.quoted != null) {
+      toQuote = await this.blocksFromTweet(builder, tweet.quoted, Object.assign({quoted: true}, flags), later);
+    } else if (tweet.retweeted != null) {
+      toQuote = await this.blocksFromTweet(builder, tweet.retweeted, Object.assign({retweeted: true}, flags), later);
+    }
+    let md = await this.markdownFromTweet(tweet, flags, later);
+    if (toQuote != null) {
+      md = md + '\n' + toQuote;
+    }
+    if (flags.quoted || flags.retweeted || flags.inReplyTo) {
+      // do nothing
+    } else {
+      builder.section(
+        new MarkdownTextBlock(md),
+        fields.length === 0 ? undefined : fields,
+        this.blockFromProfilePic(tweet, flags),
+      );
+    }
+    return md;
   }
 
   protected async chunksForEntities(entities: TweetEntities, flags: TweetRenderingFlags, later: DelayedRenderActions): Promise<Chunk[]> {
@@ -142,16 +157,20 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
   protected async markdownFromTweet(tweet: Tweet, flags: TweetRenderingFlags, later: DelayedRenderActions): Promise<string> {
     const attribution = tweet.user == null || tweet.user.name == null ? ''
       : `*${this.userLink(tweet.user.name, flags.followEmoji)}* (${this.slackEscape(tweet.user.fullName)})`;
-    const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
+    // const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
+    const explanation = flags.quoted ? 'Quoted ' : flags.inReplyTo ? 'Replied to ' : '';
     const retweeted = tweet.retweeted == null || tweet.retweeted.user == null || tweet.retweeted.user.name == null ? ''
-      : ` retweeted ${this.userLink(tweet.retweeted.user.name, flags.followEmoji)} (${this.slackEscape(tweet.retweeted.user.fullName)})`;
-    const lines = [`${explanation}${attribution}${retweeted}:`];
-    const originalText: string = tweet.longText;
-    const entities = tweet.longTextEntities;
-    const sparseChunks = entities == null ? [] : await this.chunksForEntities(entities, flags, later);
-    const adjustedChunks = this.adjustChunks(sparseChunks, originalText);
-    const result = this.replaceChunks(adjustedChunks, originalText, flags);
-    lines.push(result);
+      : ` retweeted`;
+    const quote = flags.quoted || flags.retweeted || flags.inReplyTo ? '>' : '';
+    const lines = [`${quote}${explanation}${attribution}${retweeted}:`];
+    if (tweet.retweeted == null) {
+      const originalText: string = tweet.longText;
+      const entities = tweet.longTextEntities;
+      const sparseChunks = entities == null ? [] : await this.chunksForEntities(entities, flags, later);
+      const adjustedChunks = this.adjustChunks(sparseChunks, originalText);
+      const result = this.replaceChunks(adjustedChunks, originalText, flags);
+      lines.push(result);
+    }
     return lines.join('\n');
   }
 
@@ -164,9 +183,6 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
       addBlock: (block: KnownBlockable) => lateBlocks.push(block),
     };
     await this.blocksFromTweet(builder, tweet, options, later);
-    if (tweet.quoted != null) {
-      await this.blocksFromTweet(builder, tweet.quoted, Object.assign({quoted: true}, options), later);
-    }
     builder.blocks.push(...lateBlocks);
     const message = PostableMessage.fromBlocks(
       builder.blocks.map(b => <slack.KnownBlock>b.block),
