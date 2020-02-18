@@ -88,7 +88,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
       const originalLink = `<${this.twitterUrl(tweet.replyUser, tweet.replyTweetId)}|_In reply to ${tweet.replyUser}_>`;
       fields.push(new MarkdownTextBlock(`${quote}${originalLink}`));
     }
-    let toQuote: string | undefined = undefined;
+    let toQuote: string | undefined;
     if (tweet.quoted != null) {
       toQuote = await this.blocksFromTweet(builder, tweet.quoted, Object.assign({quoted: true}, flags), later);
     } else if (tweet.retweeted != null) {

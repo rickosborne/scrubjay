@@ -82,7 +82,13 @@ describe('MediaTranscoder', async () => {
         uri: test.videoUri,
       }),
     });
-    expect(test.logSwitch.infos).deep.equals([`Transcoding ${test.videoUri} via ${test.config.transcoderUri}`]);
+    const expectedInfos = [
+      `Transcoding ${test.videoUri} via ${test.config.transcoderUri}`,
+    ];
+    if (fetchedUri != null) {
+      expectedInfos.push(`Transcoded ${test.videoUri} at ${fetchedUri}`);
+    }
+    expect(test.logSwitch.infos).deep.equals(expectedInfos);
     return test;
   }
 
@@ -106,7 +112,9 @@ describe('MediaTranscoder', async () => {
       ok: true,
       json: async () => (<TranscodeResponse>{httpStatus: 500})
     });
-    expect(test.logSwitch.errors).is.empty;
+    expect(test.logSwitch.errors).deep.equals([
+      `No URI for ${test.videoUri}: {"httpStatus":500}`
+    ]);
   });
 
   it('returns the updated if provided', async () => {
