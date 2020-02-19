@@ -8,9 +8,9 @@
     "@slack/web-api": "^5.7.0",
     "aws-lambda": "^1.0.5",
     "aws-sdk": "^2.620.0",
+    "fetch-ponyfill": "^6.1.0",
     "inclined-plane": "^0.5.3",
     "mysql2": "^2.1.0",
-    "node-fetch": "^2.6.0",
     "rxjs": "^6.5.4",
     "twitter": "^1.7.1"
   },
@@ -22,7 +22,6 @@
     "@types/mocha": "^5.2.7",
     "@types/mysql2": "github:types/mysql2",
     "@types/node": "^13.7.1",
-    "@types/node-fetch": "^2.5.4",
     "@types/twitter": "^1.7.0",
     "bufferutil": "^4.0.1",
     "cardinal": "^2.1.1",
@@ -61,5 +60,5 @@
     "test": "TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' node ./node_modules/.bin/ts-mocha test/**/*.ts",
     "un-prestart": "npm run package"
   },
-  "version": "0.4.3"
+  "version": "0.4.4"
 }

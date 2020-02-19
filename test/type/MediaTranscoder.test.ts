@@ -3,8 +3,9 @@ import {describe, it} from 'mocha';
 import {MediaTranscoder, TranscodeRequest, TranscodeResponse} from "../../type/aphelocoma/MediaTranscoder";
 import {Fetcher, MediaTranscoderImpl} from "../../type/aphelocoma/MediaTranscoder.impl";
 import {MediaConfig} from "../../type/config/MediaConfig";
-import {RequestInfo, RequestInit, Response} from "node-fetch";
 import {LogSwitch} from "../../type/Logger";
+import * as fs from 'fs';
+import * as path from 'path';
 
 describe('MediaTranscoder', async () => {
   const FETCH_FAIL_MESSAGE = `Fetcher !`;
@@ -54,7 +55,7 @@ describe('MediaTranscoder', async () => {
     config: TestableMediaConfig;
     fetcher: TestableFetcher;
     logSwitch: TestableLogSwitch;
-    transcoder: MediaTranscoder;
+    transcoder: MediaTranscoderImpl;
     videoUri: string;
   }
 
@@ -125,5 +126,14 @@ describe('MediaTranscoder', async () => {
       json: async () => (<TranscodeResponse>{httpStatus: 202, uri: fetchedUri})
     }, fetchedUri);
     expect(test.logSwitch.errors).is.empty;
+  });
+
+  it('resolves fetch', async () => {
+    const test = buildContext();
+    test.transcoder.fetcher = undefined;
+    test.config.transcoderUri = JSON.parse(fs.readFileSync(path.join(__dirname, '../../scrubjay.conf.json'), {encoding: 'utf-8'})).media.transcoderUri;
+    const videoUri = 'https://video.twimg.com/tweet_video/ERFCCP0UEAA0cAr.mp4';
+    const transcoded = await test.transcoder.attemptTranscode(videoUri);
+    expect(transcoded).not.equals(videoUri);
   });
 });

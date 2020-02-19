@@ -1,9 +1,7 @@
 import {isTranscodeResponse, MediaTranscoder, TranscodeRequest} from './MediaTranscoder';
 import {MediaConfig} from '../config/MediaConfig';
-import {RequestInfo, RequestInit, Response} from 'node-fetch';
 import {LogSwitch} from '../Logger';
-
-const nodeFetch = require('node-fetch');
+import * as fetchPony from 'fetch-ponyfill';
 
 export type Fetcher = (
   url: RequestInfo,
@@ -24,7 +22,7 @@ export class MediaTranscoderImpl implements MediaTranscoder {
   async attemptTranscode(videoUri: string): Promise<string> {
     this.info(undefined, `Transcoding ${videoUri} via ${this.mediaConfig.transcoderUri}`);
     if (typeof this.fetcher !== 'function') {
-      this.fetcher = nodeFetch;
+      this.fetcher = fetchPony().fetch;
     }
     if (typeof this.fetcher !== 'function') {
       return this.error(
