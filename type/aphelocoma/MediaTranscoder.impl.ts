@@ -11,12 +11,14 @@ export type Fetcher = (
 @MediaTranscoder.implementation
 export class MediaTranscoderImpl implements MediaTranscoder {
   public static readonly TRANSCODER_CALL_FAILED = `Transcoder call failed`;
+  private readonly fetcher: Fetcher;
 
   constructor(
     @MediaConfig.required private readonly mediaConfig: MediaConfig,
     @LogSwitch.optional private readonly logSwitch?: LogSwitch,
-    private readonly fetcher: Fetcher = nodeFetch as any,
+    fetcher?: Fetcher,
   ) {
+    this.fetcher = fetcher || (nodeFetch as any as Fetcher) || fetch;
   }
 
   async attemptTranscode(videoUri: string): Promise<string> {
