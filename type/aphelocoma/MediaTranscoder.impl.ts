@@ -20,17 +20,17 @@ export class MediaTranscoderImpl implements MediaTranscoder {
     @LogSwitch.optional private readonly logSwitch?: LogSwitch,
     fetcher?: Fetcher,
   ) {
-    this.fetcher = fetcher || (nodeFetch as any as Fetcher) || fetch;
-    if (typeof this.fetcher !== 'function') {
-      this.fetcher = this.error(
-        fetch as any as Fetcher,
-        `Expected a fetcher function, but got a ${typeof this.fetcher}: ${JSON.stringify(this.fetcher)}`
-      );
-    }
+    this.fetcher = fetcher || (nodeFetch as any as Fetcher);
   }
 
   async attemptTranscode(videoUri: string): Promise<string> {
     this.info(undefined, `Transcoding ${videoUri} via ${this.mediaConfig.transcoderUri}`);
+    if (typeof this.fetcher !== 'function') {
+      return this.error(
+        videoUri,
+        `Expected a fetcher function, but got a ${typeof this.fetcher}: ${JSON.stringify(this.fetcher)}`
+      );
+    }
     try {
       const response = await this.fetcher(this.mediaConfig.transcoderUri, <RequestInit>{
         method: 'POST',
