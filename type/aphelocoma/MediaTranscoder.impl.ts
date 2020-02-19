@@ -13,18 +13,19 @@ export type Fetcher = (
 @MediaTranscoder.implementation
 export class MediaTranscoderImpl implements MediaTranscoder {
   public static readonly TRANSCODER_CALL_FAILED = `Transcoder call failed`;
-  private readonly fetcher: Fetcher;
+  public fetcher?: Fetcher;
 
   constructor(
     @MediaConfig.required private readonly mediaConfig: MediaConfig,
     @LogSwitch.optional private readonly logSwitch?: LogSwitch,
-    fetcher?: Fetcher,
   ) {
-    this.fetcher = fetcher || (nodeFetch as any as Fetcher);
   }
 
   async attemptTranscode(videoUri: string): Promise<string> {
     this.info(undefined, `Transcoding ${videoUri} via ${this.mediaConfig.transcoderUri}`);
+    if (typeof this.fetcher !== 'function') {
+      this.fetcher = nodeFetch;
+    }
     if (typeof this.fetcher !== 'function') {
       return this.error(
         videoUri,

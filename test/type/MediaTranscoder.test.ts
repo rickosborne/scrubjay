@@ -62,8 +62,9 @@ describe('MediaTranscoder', async () => {
     const fetcher = new TestableFetcher();
     const config = new TestableMediaConfig();
     const logSwitch = new TestableLogSwitch();
-    const transcoder = new MediaTranscoderImpl(config, logSwitch, fetcher.fetcher);
+    const transcoder = new MediaTranscoderImpl(config, logSwitch);
     const videoUri = 'video' + Math.random();
+    transcoder.fetcher = fetcher.fetcher;
     return {config, fetcher, logSwitch, transcoder, videoUri};
   }
 
