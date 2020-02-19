@@ -1,12 +1,14 @@
 import {isTranscodeResponse, MediaTranscoder, TranscodeRequest} from './MediaTranscoder';
 import {MediaConfig} from '../config/MediaConfig';
-import * as nodeFetch from 'node-fetch';
+import {RequestInfo, RequestInit, Response} from 'node-fetch';
 import {LogSwitch} from '../Logger';
 
+const nodeFetch = require('node-fetch');
+
 export type Fetcher = (
-  url: nodeFetch.RequestInfo,
-  init?: nodeFetch.RequestInit
-) => Promise<nodeFetch.Response>;
+  url: RequestInfo,
+  init?: RequestInit
+) => Promise<Response>;
 
 @MediaTranscoder.implementation
 export class MediaTranscoderImpl implements MediaTranscoder {
@@ -19,12 +21,18 @@ export class MediaTranscoderImpl implements MediaTranscoder {
     fetcher?: Fetcher,
   ) {
     this.fetcher = fetcher || (nodeFetch as any as Fetcher) || fetch;
+    if (typeof this.fetcher !== 'function') {
+      this.fetcher = this.error(
+        fetch as any as Fetcher,
+        `Expected a fetcher function, but got a ${typeof this.fetcher}: ${JSON.stringify(this.fetcher)}`
+      );
+    }
   }
 
   async attemptTranscode(videoUri: string): Promise<string> {
     this.info(undefined, `Transcoding ${videoUri} via ${this.mediaConfig.transcoderUri}`);
     try {
-      const response = await this.fetcher(this.mediaConfig.transcoderUri, <nodeFetch.RequestInit>{
+      const response = await this.fetcher(this.mediaConfig.transcoderUri, <RequestInit>{
         method: 'POST',
         body: JSON.stringify(<TranscodeRequest>{
           uri: videoUri
