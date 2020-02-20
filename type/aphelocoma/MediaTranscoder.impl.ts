@@ -1,12 +1,7 @@
-import {isTranscodeResponse, MediaTranscoder, TranscodeRequest} from './MediaTranscoder';
+import {isTranscodeResponse, MediaTranscoder, TranscodeRequest, TranscodeResponse} from './MediaTranscoder';
 import {MediaConfig} from '../config/MediaConfig';
 import {LogSwitch} from '../Logger';
-import * as fetchPony from 'fetch-ponyfill';
-
-export type Fetcher = (
-  url: RequestInfo,
-  init?: RequestInit
-) => Promise<Response>;
+import {Fetcher} from "../Fetcher";
 
 @MediaTranscoder.implementation
 export class MediaTranscoderImpl implements MediaTranscoder {
@@ -21,34 +16,19 @@ export class MediaTranscoderImpl implements MediaTranscoder {
 
   async attemptTranscode(videoUri: string): Promise<string> {
     this.info(undefined, `Transcoding ${videoUri} via ${this.mediaConfig.transcoderUri}`);
-    if (typeof this.fetcher !== 'function') {
-      this.fetcher = fetchPony().fetch;
-    }
-    if (typeof this.fetcher !== 'function') {
-      return this.error(
-        videoUri,
-        `Expected a fetcher function, but got a ${typeof this.fetcher}: ${JSON.stringify(this.fetcher)}`
-      );
+    if (this.fetcher == null) {
+      this.fetcher = new Fetcher(this.logSwitch);
     }
     try {
-      const response = await this.fetcher(this.mediaConfig.transcoderUri, <RequestInit>{
-        method: 'POST',
-        body: JSON.stringify(<TranscodeRequest>{
-          uri: videoUri
-        })
+      const response = await this.fetcher.post<TranscodeResponse>(this.mediaConfig.transcoderUri, <TranscodeRequest>{
+        uri: videoUri
       });
-      if (!response.ok) {
-        return this.error(videoUri, `Could not transcode ${videoUri}: ${response.status}`);
-      }
-      const json = await response.json();
-      if (json == null) {
-        return this.error(videoUri, `Empty JSON body for ${videoUri}`);
-      } else if (!isTranscodeResponse(json)) {
-        return this.error(videoUri, `Not a transcode response ${videoUri}: ${JSON.stringify(json)}`);
-      } else if (typeof json.uri !== 'string') {
-        return this.error(videoUri, `No URI for ${videoUri}: ${JSON.stringify(json)}`);
+      if (!isTranscodeResponse(response)) {
+        return this.error(videoUri, `Not a transcode response ${videoUri}: ${JSON.stringify(response)}`);
+      } else if (typeof response.uri !== 'string') {
+        return this.error(videoUri, `No URI for ${videoUri}: ${JSON.stringify(response)}`);
       } else {
-        return this.info(json.uri, `Transcoded ${videoUri} at ${json.uri}`);
+        return this.info(response.uri, `Transcoded ${videoUri} at ${response.uri}`);
       }
     } catch (reason) {
       return this.error(videoUri, MediaTranscoderImpl.TRANSCODER_CALL_FAILED, reason);

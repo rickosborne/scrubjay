@@ -1,30 +1,30 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 import {MediaTranscoder, TranscodeRequest, TranscodeResponse} from "../../type/aphelocoma/MediaTranscoder";
-import {Fetcher, MediaTranscoderImpl} from "../../type/aphelocoma/MediaTranscoder.impl";
+import {MediaTranscoderImpl} from "../../type/aphelocoma/MediaTranscoder.impl";
 import {MediaConfig} from "../../type/config/MediaConfig";
 import {LogSwitch} from "../../type/Logger";
 import * as fs from 'fs';
 import * as path from 'path';
+import {Fetcher} from "../../type/Fetcher";
 
 describe('MediaTranscoder', async () => {
   const FETCH_FAIL_MESSAGE = `Fetcher !`;
 
-  class TestableFetcher {
-    public lastInit?: RequestInit;
+  class TestableFetcher extends Fetcher {
+    public lastBody?: any;
     public lastUrl?: RequestInfo;
-    public nextResponse?: Partial<Response>;
+    public nextResponse?: TranscodeResponse;
 
-    get fetcher(): Fetcher {
-      return async (url: RequestInfo, init?: RequestInit): Promise<Response> => {
-        this.lastUrl = url;
-        this.lastInit = init;
-        if (this.nextResponse == null) {
-          throw new Error(FETCH_FAIL_MESSAGE);
-        } else {
-          return this.nextResponse as Response;
-        }
-      };
+
+    post<T>(url: string, body: any): Promise<T> {
+      this.lastUrl = url;
+      this.lastBody = body;
+      if (this.nextResponse == null) {
+        throw new Error(FETCH_FAIL_MESSAGE);
+      } else {
+        return Promise.resolve(this.nextResponse as unknown as T);
+      }
     }
   }
 
@@ -65,12 +65,12 @@ describe('MediaTranscoder', async () => {
     const logSwitch = new TestableLogSwitch();
     const transcoder = new MediaTranscoderImpl(config, logSwitch);
     const videoUri = 'video' + Math.random();
-    transcoder.fetcher = fetcher.fetcher;
+    transcoder.fetcher = fetcher;
     return {config, fetcher, logSwitch, transcoder, videoUri};
   }
 
   async function doTest(
-    nextResponse?: Partial<Response>,
+    nextResponse?: TranscodeResponse,
     fetchedUri?: string,
   ): Promise<Context> {
     const test = buildContext();
@@ -78,11 +78,8 @@ describe('MediaTranscoder', async () => {
     const gifUri = await test.transcoder.attemptTranscode(test.videoUri);
     expect(gifUri).equals(fetchedUri || test.videoUri);
     expect(test.fetcher.lastUrl).equals(test.config.transcoderUri);
-    expect(test.fetcher.lastInit).deep.equals(<RequestInit>{
-      method: 'POST',
-      body: JSON.stringify(<TranscodeRequest>{
-        uri: test.videoUri,
-      }),
+    expect(test.fetcher.lastBody).deep.equals(<TranscodeRequest>{
+      uri: test.videoUri,
     });
     const expectedInfos = [
       `Transcoding ${test.videoUri} via ${test.config.transcoderUri}`,
@@ -99,32 +96,9 @@ describe('MediaTranscoder', async () => {
     expect(test.logSwitch.errors).deep.equals([MediaTranscoderImpl.TRANSCODER_CALL_FAILED]);
   });
 
-  it('returns the original on non-success', async () => {
-    const test = await doTest({
-      ok: true,
-      json: async () => {
-        throw new Error('Did not expect json() call');
-      }
-    });
-    expect(test.logSwitch.errors).deep.equals([MediaTranscoderImpl.TRANSCODER_CALL_FAILED]);
-  });
-
-  it('returns the original on no-uri', async () => {
-    const test = await doTest({
-      ok: true,
-      json: async () => (<TranscodeResponse>{httpStatus: 500})
-    });
-    expect(test.logSwitch.errors).deep.equals([
-      `No URI for ${test.videoUri}: {"httpStatus":500}`
-    ]);
-  });
-
   it('returns the updated if provided', async () => {
     const fetchedUri = 'fetched' + Math.random();
-    const test = await doTest({
-      ok: true,
-      json: async () => (<TranscodeResponse>{httpStatus: 202, uri: fetchedUri})
-    }, fetchedUri);
+    const test = await doTest({httpStatus: 202, uri: fetchedUri}, fetchedUri);
     expect(test.logSwitch.errors).is.empty;
   });
 
