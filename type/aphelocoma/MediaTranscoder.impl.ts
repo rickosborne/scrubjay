@@ -1,7 +1,7 @@
 import {isTranscodeResponse, MediaTranscoder, TranscodeRequest, TranscodeResponse} from './MediaTranscoder';
 import {MediaConfig} from '../config/MediaConfig';
 import {LogSwitch} from '../Logger';
-import {Fetcher} from "../Fetcher";
+import {Fetcher} from '../Fetcher';
 
 @MediaTranscoder.implementation
 export class MediaTranscoderImpl implements MediaTranscoder {

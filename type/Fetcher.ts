@@ -1,4 +1,4 @@
-import {LogSwitch} from "./Logger";
+import {LogSwitch} from './Logger';
 
 const XHR = require('xmlhttprequest').XMLHttpRequest;
 
