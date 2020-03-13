@@ -26,12 +26,14 @@ export class MediaTranscoderImpl implements MediaTranscoder {
       if (!isTranscodeResponse(response)) {
         return this.error(videoUri, `Not a transcode response ${videoUri}: ${JSON.stringify(response)}`);
       } else if (typeof response.uri !== 'string') {
-        return this.error(videoUri, `No URI for ${videoUri}: ${JSON.stringify(response)}`);
+        // return this.error(videoUri, `No URI for ${videoUri}: ${JSON.stringify(response)}`);
+        return videoUri;
       } else {
         return this.info(response.uri, `Transcoded ${videoUri} at ${response.uri}`);
       }
     } catch (reason) {
-      return this.error(videoUri, MediaTranscoderImpl.TRANSCODER_CALL_FAILED, reason);
+      return videoUri;
+      // return this.error(videoUri, MediaTranscoderImpl.TRANSCODER_CALL_FAILED, reason);
     }
   }
 

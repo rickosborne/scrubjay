@@ -125,7 +125,7 @@ describe('SlackTweetFormatter', () => {
       const texts = textsFromMessages(messages);
       expect(texts).deep.equals([
         "*<https://twitter.com/CriticalRole|:bird:CriticalRole>* (Critical Role):\n\"You don't have to be in something forever for it to have a lasting impression on your life.\" - <https://twitter.com/MaryEMcGlynn|:bird:MaryEMcGlynn>\n\nZahra Hydris herself joins <https://twitter.com/BrianWFoster|:bird:BrianWFoster> tonight for an all-new episode of _#BetweenTheSheets_! Live at 7pm Pacific on <http://twitch.tv/criticalrole|twitch.tv/criticalrole>. <https://pbs.twimg.com/ext_tw_video_thumb/1107678595399311360/pu/img/x3Ne8V8lErWowNTB.jpg|pic.twitter.com/6f25qmC9z4>",
-        "<https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/1280x720/vjCA_MjX5ZjWj8pX.mp4>"
+        "<https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/320x180/gMW6lxCjMTyAdPvN.mp4>",
       ]);
     });
     it('handles extended embedded videos', async () => {
@@ -134,7 +134,7 @@ describe('SlackTweetFormatter', () => {
       const texts = textsFromMessages(messages);
       expect(texts).deep.equals([
         "*<https://twitter.com/WillingBlam|:bird:WillingBlam>* (Travis Willingham) retweeted:\n>*<https://twitter.com/SportsCenter|:bird:SportsCenter>* (SportsCenter):\n>Hug someone you love today.\n>\n>Well said, @RealJayWilliams. <https://pbs.twimg.com/ext_tw_video_thumb/1221545008563658753/pu/img/FRHF8stNwR8FN05-.jpg|pic.twitter.com/m9WnfP3sWn>",
-        "<https://video.twimg.com/ext_tw_video/1221545008563658753/pu/vid/1280x720/AC9CgEvE9eScD92a.mp4>",
+        "<https://video.twimg.com/ext_tw_video/1221545008563658753/pu/vid/480x270/HkEyKBvQzPPBMHiI.mp4>",
       ]);
     });
     it('correctly replaces links', async () => {
