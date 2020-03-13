@@ -20,6 +20,40 @@ export class MediaExtractor implements EntityExtractor<TweetMedia> {
     return entities.media;
   }
 
+  bestForGif(left: TweetMediaVideoVariant | undefined, right: TweetMediaVideoVariant | undefined): TweetMediaVideoVariant | undefined {
+    if (left == null) {
+      return right;
+    }
+    if (right == null) {
+      return left;
+    }
+    const leftBitrate = left.bitrate || 0;
+    const rightBitrate = right.bitrate || 0;
+    if (leftBitrate > BITRATE_HARD_CAP && rightBitrate > BITRATE_HARD_CAP) {  // both too big, give up!
+      return undefined;
+    } else if (leftBitrate > BITRATE_HARD_CAP) {  // left too big
+      return right;
+    } else if (rightBitrate > BITRATE_HARD_CAP) {  // right too big
+      return left;
+    } else if (leftBitrate > BITRATE_SOFT_CAP && rightBitrate > BITRATE_SOFT_CAP) {  // both bigger than preferred, use smaller
+      return leftBitrate > rightBitrate ? right : left;
+    } else {  // both acceptable, use larger
+      return leftBitrate > rightBitrate ? left : right;
+    }
+  }
+
+  bestForMp4(left: TweetMediaVideoVariant, right: TweetMediaVideoVariant): TweetMediaVideoVariant {
+    if (left == null) {
+      return right;
+    }
+    if (right == null) {
+      return left;
+    }
+    const leftBitrate = left.bitrate || 0;
+    const rightBitrate = right.bitrate || 0;
+    return leftBitrate > rightBitrate ? left : right;
+  }
+
   async convert(item: TweetMedia, flags?: TweetRenderingFlags, later?: DelayedRenderActions): Promise<string> {
     if (item.videoInfo != null && item.videoInfo.variants != null) {
       const mp4s = item.videoInfo.variants
@@ -47,32 +81,6 @@ export class MediaExtractor implements EntityExtractor<TweetMedia> {
       later.addMessage(PostableMessage.fromText(`<${item.url}>`));
     }
     return item.displayUrl == null ? `<${item.url}>` : `<${item.url}|${item.displayUrl}>`;
-  }
-
-  bestForMp4(left: TweetMediaVideoVariant, right: TweetMediaVideoVariant): TweetMediaVideoVariant {
-    if (left == null) return right;
-    if (right == null) return left;
-    const leftBitrate = left.bitrate || 0;
-    const rightBitrate = right.bitrate || 0;
-    return leftBitrate > rightBitrate ? left : right;
-  }
-
-  bestForGif(left: TweetMediaVideoVariant | undefined, right: TweetMediaVideoVariant | undefined): TweetMediaVideoVariant | undefined {
-    if (left == null) return right;
-    if (right == null) return left;
-    const leftBitrate = left.bitrate || 0;
-    const rightBitrate = right.bitrate || 0;
-    if (leftBitrate > BITRATE_HARD_CAP && rightBitrate > BITRATE_HARD_CAP) {  // both too big, give up!
-      return undefined;
-    } else if (leftBitrate > BITRATE_HARD_CAP) {  // left too big
-      return right;
-    } else if (rightBitrate > BITRATE_HARD_CAP) {  // right too big
-      return left;
-    } else if (leftBitrate > BITRATE_SOFT_CAP && rightBitrate > BITRATE_SOFT_CAP) {  // both bigger than preferred, use smaller
-      return leftBitrate > rightBitrate ? right : left;
-    } else {  // both acceptable, use larger
-      return leftBitrate > rightBitrate ? left : right;
-    }
   }
 
   originalText(item: TweetMedia): string {

@@ -22,7 +22,7 @@ export class MediaTranscoderImpl implements MediaTranscoder {
     try {
       const response = await this.fetcher.post<TranscodeResponse>(this.mediaConfig.transcoderUri, <TranscodeRequest>{
         uri: videoUri
-      });
+      }, [504]);
       if (!isTranscodeResponse(response)) {
         return this.error(videoUri, `Not a transcode response ${videoUri}: ${JSON.stringify(response)}`);
       } else if (typeof response.uri !== 'string') {

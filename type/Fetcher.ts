@@ -14,7 +14,7 @@ export class Fetcher {
   ) {
   }
 
-  public post<T>(url: string, body: any): Promise<T> {
+  public post<T>(url: string, body: any, expectedErrorStatuses: number[] = []): Promise<T> {
     return new Promise((resolve, reject) => {
       const bodyText: string = typeof body === 'string' ? body : JSON.stringify(body);
       const xhr = new XHR();
@@ -35,7 +35,9 @@ export class Fetcher {
             }
           } else {
             const statusError = `HttpStatus=${this.status} ${url}`;
-            error(statusError);
+            if (!expectedErrorStatuses.includes(this.status)) {
+              error(statusError);
+            }
             reject(new Error(statusError));
           }
         }
