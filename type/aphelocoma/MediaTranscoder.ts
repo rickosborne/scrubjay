@@ -14,7 +14,7 @@ export function isTranscodeResponse(obj: any): obj is TranscodeResponse {
 }
 
 export interface MediaTranscoder {
-  attemptTranscode(videoUri: string): Promise<string>;
+  attemptTranscode(videoUri: string): Promise<string | undefined>;
 }
 
 export const MediaTranscoder = injectableType<MediaTranscoder>('MediaTranscoder');

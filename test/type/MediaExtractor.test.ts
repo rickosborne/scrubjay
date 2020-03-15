@@ -49,6 +49,7 @@ describe('MediaExtractor', () => {
   }
 
   const videoUri = 'some video uri';
+  const gifUri = 'some gif uri';
   const media: TweetMedia = {
     id: 1234,
     url: 'media url',
@@ -58,12 +59,12 @@ describe('MediaExtractor', () => {
       variants: [
         {
           url: videoUri,
-          bitrate: 0,
+          bitrate: 1234,
           contentType: TweetMedia.VIDEO_MP4
         },
         {
-          url: 'some gif uri',
-          bitrate: 0,
+          url: gifUri,
+          bitrate: 5678,
           contentType: TweetMedia.ANIMATED_GIF
         }
       ]
@@ -74,7 +75,7 @@ describe('MediaExtractor', () => {
     const test = buildContext();
     test.transcoder.nextResult = 'some gif uri';
     const md = await test.extractor.convert(media, undefined, test.delayed);
-    expect(md).equals(`<${media.url}>`);
+    expect(md).equals(`<${gifUri}>`);
     expect(test.transcoder.lastVideoUri).equals(videoUri);
     expect(test.delayed.blocks).is.empty;
     expect(test.delayed.messages).deep.equals([
@@ -86,7 +87,7 @@ describe('MediaExtractor', () => {
     const test = buildContext();
     test.transcoder.doThrow = true;
     const md = await test.extractor.convert(media, undefined, test.delayed);
-    expect(md).equals(`<${media.url}>`);
+    expect(md).equals(`<${videoUri}>`);
     expect(test.transcoder.lastVideoUri).equals(videoUri);
     expect(test.delayed.blocks).is.empty;
     expect(test.delayed.messages).deep.equals([

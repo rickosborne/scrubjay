@@ -55,32 +55,38 @@ export class MediaExtractor implements EntityExtractor<TweetMedia> {
   }
 
   async convert(item: TweetMedia, flags?: TweetRenderingFlags, later?: DelayedRenderActions): Promise<string> {
+    let url: string | undefined = item.url;
     if (item.videoInfo != null && item.videoInfo.variants != null) {
       const mp4s = item.videoInfo.variants
         .filter(variant => variant != null
           && variant.url != null
           && variant.bitrate != null
+          && variant.bitrate > 0
           && variant.contentType === TweetMedia.VIDEO_MP4);
-      const bestGif = mp4s
-        .reduce((a: TweetMediaVideoVariant | undefined, b: TweetMediaVideoVariant | undefined) => this.bestForGif(a, b), undefined);
-      const bestMp4 = mp4s.reduce((a, b) => this.bestForMp4(a, b));
-      if (bestGif != null && bestGif.url != null && later != null) {
-        let url: string = bestGif.url;
-        try {
-          url = await this.mediaTranscoder.attemptTranscode(bestGif.url.replace(/\?tag=\d+$/, ''));
-          later.addMessage(PostableMessage.fromText(`<${url}>`));
-        } catch (e) {
-          if (bestMp4 != null) {
-            later.addMessage(PostableMessage.fromText(`<${bestMp4.url}>`));
-          } else {
-            later.addMessage(PostableMessage.fromText(`<${item.url}>`));
+      if (mp4s.length > 0) {
+        const bestGif = mp4s
+          .reduce((a: TweetMediaVideoVariant | undefined, b: TweetMediaVideoVariant | undefined) => this.bestForGif(a, b), undefined);
+        const bestMp4 = mp4s.reduce((a, b) => this.bestForMp4(a, b));
+        if (bestMp4 != null && bestMp4.url != null) {
+          url = bestMp4.url;
+        }
+        if (bestGif != null && bestGif.url != null && later != null) {
+          try {
+            const gifUrl = await this.mediaTranscoder
+              .attemptTranscode(bestGif.url.replace(/\?tag=\d+$/, ''));
+            if (gifUrl != null) {
+              url = gifUrl;
+            }
+          } catch (e) {
+            // don't care
           }
         }
       }
-    } else if (item.url != null && later != null) {
-      later.addMessage(PostableMessage.fromText(`<${item.url}>`));
     }
-    return item.displayUrl == null ? `<${item.url}>` : `<${item.url}|${item.displayUrl}>`;
+    if (url != null && later != null) {
+      later.addMessage(PostableMessage.fromText(`<${url}>`));
+    }
+    return item.displayUrl == null ? `<${url}>` : `<${url}|${item.displayUrl}>`;
   }
 
   originalText(item: TweetMedia): string {

@@ -124,7 +124,7 @@ describe('SlackTweetFormatter', () => {
       const messages: PostableMessage[] = await formatter.messagesFromTweet(tweetWithVideo);
       const texts = textsFromMessages(messages);
       expect(texts).deep.equals([
-        "*<https://twitter.com/CriticalRole|:bird:CriticalRole>* (Critical Role):\n\"You don't have to be in something forever for it to have a lasting impression on your life.\" - <https://twitter.com/MaryEMcGlynn|:bird:MaryEMcGlynn>\n\nZahra Hydris herself joins <https://twitter.com/BrianWFoster|:bird:BrianWFoster> tonight for an all-new episode of _#BetweenTheSheets_! Live at 7pm Pacific on <http://twitch.tv/criticalrole|twitch.tv/criticalrole>. <https://pbs.twimg.com/ext_tw_video_thumb/1107678595399311360/pu/img/x3Ne8V8lErWowNTB.jpg|pic.twitter.com/6f25qmC9z4>",
+        "*<https://twitter.com/CriticalRole|:bird:CriticalRole>* (Critical Role):\n\"You don't have to be in something forever for it to have a lasting impression on your life.\" - <https://twitter.com/MaryEMcGlynn|:bird:MaryEMcGlynn>\n\nZahra Hydris herself joins <https://twitter.com/BrianWFoster|:bird:BrianWFoster> tonight for an all-new episode of _#BetweenTheSheets_! Live at 7pm Pacific on <http://twitch.tv/criticalrole|twitch.tv/criticalrole>. <https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/320x180/gMW6lxCjMTyAdPvN.mp4|pic.twitter.com/6f25qmC9z4>",
         "<https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/320x180/gMW6lxCjMTyAdPvN.mp4>",
       ]);
     });
@@ -133,7 +133,7 @@ describe('SlackTweetFormatter', () => {
       const messages: PostableMessage[] = await formatter.messagesFromTweet(extendedTweetWithVideo);
       const texts = textsFromMessages(messages);
       expect(texts).deep.equals([
-        "*<https://twitter.com/WillingBlam|:bird:WillingBlam>* (Travis Willingham) retweeted:\n>*<https://twitter.com/SportsCenter|:bird:SportsCenter>* (SportsCenter):\n>Hug someone you love today.\n>\n>Well said, @RealJayWilliams. <https://pbs.twimg.com/ext_tw_video_thumb/1221545008563658753/pu/img/FRHF8stNwR8FN05-.jpg|pic.twitter.com/m9WnfP3sWn>",
+        "*<https://twitter.com/WillingBlam|:bird:WillingBlam>* (Travis Willingham) retweeted:\n>*<https://twitter.com/SportsCenter|:bird:SportsCenter>* (SportsCenter):\n>Hug someone you love today.\n>\n>Well said, @RealJayWilliams. <https://video.twimg.com/ext_tw_video/1221545008563658753/pu/vid/480x270/HkEyKBvQzPPBMHiI.mp4|pic.twitter.com/m9WnfP3sWn>",
         "<https://video.twimg.com/ext_tw_video/1221545008563658753/pu/vid/480x270/HkEyKBvQzPPBMHiI.mp4>",
       ]);
     });
