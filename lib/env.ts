@@ -102,6 +102,7 @@ class EnvImpl implements Env {
     if (obj == null) {
       return '<null>';
     } else if (obj instanceof Error) {
+      this.logSwitch.error(obj);
       return `${obj.name}: ${obj.message}`;
     } else if (typeof obj === 'number' || typeof obj === 'string') {
       return obj;

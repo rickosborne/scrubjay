@@ -44,9 +44,20 @@ class FeederImpl {
 
   private async backfillTweets(users: TwitterUser[], queue: TypedQueue<TweetJSON>): Promise<void> {
     for (const user of users) {
+      const onRecentError = defaultEnv.debugFailure(() => `FeederImpl.backfillTweets.recent(${user.name})`);
+      const onHandleError = defaultEnv.debugFailure(() => `FeederImpl.backfillTweets.recent.handleTweets(${user.name})`)
       if (user.name != null) {
         this.env.debug(() => `FeederImpl.backfillTweets user ${user.name}`);
-        await this.handleTweets(queue, await this.twitterClient.recent(user));
+        try {
+          const tweets = await this.twitterClient.recent(user);
+          try {
+            await this.handleTweets(queue, tweets);
+          } catch (f) {
+            onHandleError(f);
+          }
+        } catch (e) {
+          onRecentError(e);
+        }
       }
     }
   }

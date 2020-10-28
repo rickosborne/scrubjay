@@ -1,19 +1,27 @@
-import {LogLevel, WebAPICallResult, WebClient} from '@slack/web-api';
 import {RTMClient} from '@slack/rtm-api';
-import {SlackConfig} from '../config/SlackConfig';
-import {DirectMessage} from './DirectMessage';
-import {PostableMessage} from './PostableMessage';
-import {Channel} from './Channel';
-import {WebChannelsListResult} from './WebChannelsListResult';
+import {LogLevel, WebAPICallResult, WebClient} from '@slack/web-api';
+import {tenRetriesInAboutThirtyMinutes} from '@slack/web-api/dist/retry-policies';
 import env from '../../lib/env';
 import {trim} from '../../lib/trim';
-import {RTMConnectResult} from './RTMConnectResult';
-import {SlackId, SlackTimestamp} from './RTEvent';
-import {Eventually, EventuallyPostable, FromMessage, OnMessageActions, OnSlackMessage, Postable, SlackClient} from './SlackClient';
-import {NotifyQueue} from '../NotifyQueue';
 import {ScrubjayConfigStore} from '../config/ScrubjayConfigStore';
+import {SlackConfig} from '../config/SlackConfig';
 import {LogSwitch} from '../Logger';
-import {tenRetriesInAboutThirtyMinutes} from '@slack/web-api/dist/retry-policies';
+import {NotifyQueue} from '../NotifyQueue';
+import {Channel} from './Channel';
+import {DirectMessage} from './DirectMessage';
+import {PostableMessage} from './PostableMessage';
+import {SlackId, SlackTimestamp} from './RTEvent';
+import {RTMConnectResult} from './RTMConnectResult';
+import {
+  Eventually,
+  EventuallyPostable,
+  FromMessage,
+  OnMessageActions,
+  OnSlackMessage,
+  Postable,
+  SlackClient
+} from './SlackClient';
+import {WebChannelsListResult} from './WebChannelsListResult';
 
 @SlackClient.implementation
 class SlackClientImpl implements SlackClient {
@@ -166,6 +174,7 @@ class SlackClientImpl implements SlackClient {
       useRtmConnect: true,
       logLevel: LogLevel.WARN,
       logger: {
+        getLevel: () => LogLevel.WARN,
         debug: (msg): void => {},
         error: (msg): void => this.logSwitch.error(`${loggerName} ${env.readable(msg)}`),
         info: (msg): void => this.logSwitch.info(`${loggerName} ${env.readable(msg)}`),

@@ -97,7 +97,7 @@ class TypedQueueImpl<T> implements TypedQueue<T> {
 
   public async add(item: T): Promise<void> {
     const json = this.jsonFormatter.stringify(item);
-    this.env.debug(() => `TypedQueueImpl.add<${this.typeName}> (before)`);
+    // this.env.debug(() => `TypedQueueImpl.add<${this.typeName}> (before)`);
     return new Promise<string | undefined>((resolve, reject) => this.sqs.sendMessage({
       MessageBody: json,
       QueueUrl: this.queueUrl
@@ -112,7 +112,7 @@ class TypedQueueImpl<T> implements TypedQueue<T> {
       reject(sendErr);
     })).then((messageId) => {
       if (messageId != null) {
-        this.env.debug(() => `TypedQueueImpl.add<${this.typeName}> => ${messageId}`);
+        // this.env.debug(() => `TypedQueueImpl.add<${this.typeName}> => ${messageId}`);
       }
       return undefined;
     }).catch(e => {

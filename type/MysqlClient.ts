@@ -35,6 +35,10 @@ export interface Query<PARAMS> {
   fetch<ROW>(rowsConverter?: ResultSetConverter<ROW>): Promise<Array<ROW>>;
 }
 
+export function isOkPacket(t: any): t is mysql2.OkPacket {
+  return t != null && t.constructor.name === 'OkPacket';
+}
+
 export class QueryImpl<PARAMS> implements Query<PARAMS> {
   constructor(
     private readonly db: Promise<mysql2.Connection>,
@@ -91,8 +95,10 @@ export class QueryImpl<PARAMS> implements Query<PARAMS> {
       if (okPackets.length === 1) {
         split.ok = okPackets[0];
       }
-    } else {
-      split.ok = rows == null ? undefined : rows;
+    } else if (isOkPacket(rows)) {
+      split.ok = rows;
+    } else if (rows == null) {
+      split.ok = undefined;
     }
     return split;
   }
