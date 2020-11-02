@@ -1,5 +1,6 @@
 import {APIGatewayEvent, Context} from 'aws-lambda';
 import * as crypto from 'crypto';
+import {LogSwitchImpl} from './type/LogSwitch.impl';
 import {TwitterClientImpl} from './type/twitter/TwitterClient.impl';
 import {TwitterConfigImpl} from './type/config/ScrubjayConfig.impl';
 
@@ -116,7 +117,8 @@ export const handler = async function (
                     }),
                     undefined as any,
                     undefined as any,
-                    undefined as any
+                    undefined as any,
+                    new LogSwitchImpl(),
                 );
                 const twit = await twitterClient.fetchUser(twitName);
                 if (twit == null) {

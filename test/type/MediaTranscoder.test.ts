@@ -96,18 +96,20 @@ describe('MediaTranscoder', async () => {
   //   expect(test.logSwitch.errors).deep.equals([MediaTranscoderImpl.TRANSCODER_CALL_FAILED]);
   // });
 
-  it('returns the updated if provided', async () => {
+  it('returns the updated if provided', () => {
     const fetchedUri = 'fetched' + Math.random();
-    const test = await doTest({httpStatus: 202, uri: fetchedUri}, fetchedUri);
-    expect(test.logSwitch.errors).is.empty;
+    return doTest({httpStatus: 202, uri: fetchedUri}, fetchedUri).then(test => {
+      expect(test.logSwitch.errors).is.empty;
+    });
   });
 
-  it('resolves fetch', async () => {
+  it('resolves fetch', () => {
     const test = buildContext();
     test.transcoder.fetcher = undefined;
     test.config.transcoderUri = JSON.parse(fs.readFileSync(path.join(__dirname, '../../scrubjay.conf.json'), {encoding: 'utf-8'})).media.transcoderUri;
     const videoUri = 'https://video.twimg.com/tweet_video/ERFCCP0UEAA0cAr.mp4';
-    const transcoded = await test.transcoder.attemptTranscode(videoUri);
-    expect(transcoded).not.equals(videoUri);
+    return test.transcoder.attemptTranscode(videoUri).then(transcoded => {
+      expect(transcoded).not.equals(videoUri);
+    });
   });
 });

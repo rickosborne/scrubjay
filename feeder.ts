@@ -45,13 +45,13 @@ class FeederImpl {
   private async backfillTweets(users: TwitterUser[], queue: TypedQueue<TweetJSON>): Promise<void> {
     for (const user of users) {
       const onRecentError = defaultEnv.debugFailure(() => `FeederImpl.backfillTweets.recent(${user.name})`);
-      const onHandleError = defaultEnv.debugFailure(() => `FeederImpl.backfillTweets.recent.handleTweets(${user.name})`)
+      const onHandleError = defaultEnv.debugFailure(() => `FeederImpl.backfillTweets.recent.handleTweets(${user.name})`);
       if (user.name != null) {
         this.env.debug(() => `FeederImpl.backfillTweets user ${user.name}`);
         try {
           const tweets = await this.twitterClient.recent(user);
           try {
-            await this.handleTweets(queue, tweets);
+            await this.handleTweets(queue, tweets, true);
           } catch (f) {
             onHandleError(f);
           }
@@ -62,14 +62,21 @@ class FeederImpl {
     }
   }
 
-  protected async handleTweets(queue: TypedQueue<TweetJSON>, tweets: Tweet[]): Promise<void> {
+  protected async handleTweets(
+    queue: TypedQueue<TweetJSON>,
+    tweets: Tweet[],
+    fetchFull: boolean = false
+  ): Promise<void> {
     const newTweets = await this.tweetFilter.publish(tweets);
     for (const tweet of newTweets) {
       if (tweet != null && tweet.source != null) {
         this.env.debug(() => `FeederImpl.handleTweet ${tweet.id} @${tweet.user.name} ${tweet.longText}`);
-        await queue.add(tweet.source);
-        await this.tweetStore.store(tweet);
-        await this.twitterEventStore.save(tweet.source);
+        const fullTweet = await (fetchFull ? Promise.resolve(tweet) : this.twitterClient.fetchTweet(tweet.id));
+        if (fullTweet != null) {
+          await queue.add(fullTweet.source);
+          await this.tweetStore.store(fullTweet);
+          await this.twitterEventStore.save(fullTweet.source);
+        }
       }
     }
   }

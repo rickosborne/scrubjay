@@ -148,6 +148,19 @@ class SlackClientImpl implements SlackClient {
     return maybeChain == null ? Promise.resolve() : maybeChain;
   }
 
+  sendWithResult<T>(resultConverter: (result: WebAPICallResult) => T, ...messages: PostableMessage[]): Promise<T> {
+    return messages
+      .map(message => new Promise<T>(resolve => {
+        env.debug(() => message.toString());
+        return this.web.chat.postMessage(message)
+          .then(result => resolve(resultConverter(result)))
+          .catch(env.debugFailure(() => `Could not send message\n${message.toString()}\n`));
+      }))
+      .reduce((previousValue: Promise<T>, currentValue: Promise<T>) => {
+        return previousValue == null ? currentValue : previousValue.then(() => currentValue);
+      });
+  }
+
   public setTopic(channel: Channel, topic: string): Promise<boolean> {
     return this.web.channels
       .setTopic({

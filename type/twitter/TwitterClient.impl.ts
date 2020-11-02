@@ -1,18 +1,22 @@
-import {TweetJSON, TwitterEventStore} from './store/TwitterEventStore';
-import {TweetStore} from './store/TweetStore';
+import {EventEmitter} from 'events';
 import * as Twitter from 'twitter';
-import {TwitterUser} from './TwitterUser';
 import env from '../../lib/env';
+import {TwitterConfig} from '../config/TwitterConfig';
+import {LogSwitch} from '../Logger';
+import {NotifyQueue} from '../NotifyQueue';
+import {TweetStore} from './store/TweetStore';
+import {TwitterEventStore} from './store/TwitterEventStore';
 import {Tweet} from './Tweet';
 import {TweetCallback, TwitterClient, TwitterClientState} from './TwitterClient';
-import {EventEmitter} from 'events';
-import {TwitterConfig} from '../config/TwitterConfig';
-import {NotifyQueue} from '../NotifyQueue';
+import {TwitterUser} from './TwitterUser';
 
 @TwitterClient.implementation
 export class TwitterClientImpl implements TwitterClient {
 
+  private _lastConnectedTime: Date | undefined;
+  private _state: TwitterClientState = TwitterClientState.DISCONNECTED;
   private readonly _stream: boolean;
+  private _tweetsSinceLastConnect = 0;
   private stream?: EventEmitter;
   private readonly tweetCallbacks: TweetCallback[] = [];
   private readonly twitter?: Twitter;
@@ -24,24 +28,19 @@ export class TwitterClientImpl implements TwitterClient {
     @TwitterEventStore.required private readonly twitterEventStore: TwitterEventStore,
     @TweetStore.required private readonly tweetStore: TweetStore,
     @NotifyQueue.required private readonly notifyQueue: NotifyQueue,
+    @LogSwitch.required private readonly logSwitch: LogSwitch,
   ) {
     this.twitter = new Twitter(config.credentials);
     this._stream = config.connectStream;
   }
 
-  private _lastConnectedTime: Date | undefined;
-
   public get lastConnectedTime(): Date | undefined {
     return this._lastConnectedTime;
   }
 
-  private _state: TwitterClientState = TwitterClientState.DISCONNECTED;
-
   public get state(): TwitterClientState {
     return this._state;
   }
-
-  private _tweetsSinceLastConnect = 0;
 
   public get tweetsSinceLastConnect(): number {
     return this._tweetsSinceLastConnect;
@@ -121,6 +120,23 @@ export class TwitterClientImpl implements TwitterClient {
     } else {
       env.debug(`Skipping Twitter stream connect`);
     }
+  }
+
+  fetchTweet(id: string): Promise<Tweet | undefined> {
+    if (this.twitter == null) {
+      throw new Error(`No Twitter client to look up tweet \`${id}\`.`);
+    }
+    return this.twitter.get('statuses/show', {id})
+      .then(response => {
+        if (response == null) {
+          return undefined;
+        }
+        try {
+          return Tweet.fromObject(response);
+        } catch (e) {
+          this.logSwitch.error(`Could not fetch tweet ${id}: ${e.message}`, e);
+        }
+      });
   }
 
   fetchUser(name: string): Promise<TwitterUser> {

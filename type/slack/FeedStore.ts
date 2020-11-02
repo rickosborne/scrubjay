@@ -16,6 +16,7 @@ export interface ChannelAndFollowSummary {
 export interface FeedDelivery {
   readonly channelId: string;
   readonly deliveryDate: number;
+  readonly ts: string | undefined;
   readonly tweetId: string;
 }
 
@@ -28,7 +29,7 @@ export interface FeedStore {
 
   createFeed(channel: Channel): Promise<FeedChannel>;
 
-  delivered(channel: Channel | FeedChannel, tweetId: string): Promise<boolean>;
+  delivered(channel: Channel | FeedChannel, tweetId: string, ts: string | undefined): Promise<boolean>;
 
   deliveryFor(channel: Channel | FeedChannel, tweetId: string): Promise<FeedDelivery | null>;
 

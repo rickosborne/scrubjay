@@ -32,6 +32,7 @@ class FeedDeliveryImpl implements FeedDelivery {
       .string(['channel_id', 'channelId'])
       .string(['tweet_id', 'tweetId'])
       .date(['delivery_dt', 'deliveryDate'])
+      .string('ts', false)
       .orThrow(message => new Error(`Could not reify FeedDelivery: ${message}`));
   }
 
@@ -39,6 +40,7 @@ class FeedDeliveryImpl implements FeedDelivery {
     public readonly channelId: SlackId,
     public readonly tweetId: string,
     public readonly deliveryDate: number,
+    public readonly ts: string | undefined,
   ) {
   }
 }
@@ -112,12 +114,12 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
     });
   }
 
-  delivered(channel: Channel | FeedChannel, tweetId: string): Promise<boolean> {
+  delivered(channel: Channel | FeedChannel, tweetId: string, ts: string | undefined): Promise<boolean> {
     return this
-      .query<[string, string]>(`
-          INSERT IGNORE INTO slack_feed_delivery (channel_id, tweet_id, delivery_dt)
-          VALUES (?, ?, CURRENT_TIMESTAMP)
-      `, [channel.id, tweetId])
+      .query<[string, string, string | undefined]>(`
+          INSERT IGNORE INTO slack_feed_delivery (channel_id, tweet_id, ts, delivery_dt)
+          VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+      `, [channel.id, tweetId, ts])
       .execute()
       .then(() => true)
       ;
@@ -125,7 +127,7 @@ class FeedStoreImpl extends MysqlClient implements FeedStore {
 
   public deliveryFor(channel: Channel | FeedChannel, tweetId: string): Promise<FeedDelivery | null> {
     return this.findObject<FeedDelivery>(FeedDeliveryImpl, `
-        SELECT channel_id, tweet_id, delivery_dt
+        SELECT channel_id, tweet_id, delivery_dt, ts
         FROM slack_feed_delivery
         WHERE (channel_id = ?) AND (tweet_id = ?)
     `, [channel.id, tweetId]);

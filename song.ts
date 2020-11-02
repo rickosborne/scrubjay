@@ -58,12 +58,17 @@ class SongImpl {
           if (maybeDelivery != null) {
             return OnAvailableResult.HANDLED;
           }
-          return this.slackClient.send(...postables.map(p => p.with(channel.id))).then(() => {
-            return this.feedStore.delivered(channel, tweetId).then(() => {
-              this.env.debug(() => `SongImpl.onTweet delivered ${tweetImpl.id}`);
-              return OnAvailableResult.HANDLED;
+          return this.slackClient
+            .sendWithResult(result => typeof result.ts === 'string' ? result.ts : undefined,
+              ...postables.map(p => p.with(channel.id)))
+            .then(maybeTs => {
+              return this.feedStore
+                .delivered(channel, tweetId, maybeTs)
+                .then(() => {
+                  this.env.debug(() => `SongImpl.onTweet delivered ${tweetImpl.id}`);
+                  return OnAvailableResult.HANDLED;
+                });
             });
-          });
         });
       }))
         .then(() => OnAvailableResult.HANDLED)

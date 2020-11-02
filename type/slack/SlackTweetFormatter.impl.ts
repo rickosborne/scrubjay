@@ -1,29 +1,29 @@
-import {Indexed, Tweet} from '../twitter/Tweet';
-import {ImageBlock} from './block/ImageBlock';
-import {SlackFormatBuilder} from './SlackFormatBuilder';
-import {TextBlock} from './block/TextBlock';
-import {MarkdownTextBlock} from './block/MarkdownTextBlock';
-import {TweetEntities} from '../twitter/TweetEntities';
-import {getLongDateTime} from '../../lib/time';
-import {PostableMessage} from './PostableMessage';
-import {KnownBlockable} from './block/SlackBlock';
 import * as slack from '@slack/web-api';
+import {getLongDateTime} from '../../lib/time';
+import {MediaTranscoder} from '../aphelocoma/MediaTranscoder';
+import {Indexed, Tweet} from '../twitter/Tweet';
+import {TweetEntities} from '../twitter/TweetEntities';
+import {ImageBlock} from './block/ImageBlock';
+import {MarkdownTextBlock} from './block/MarkdownTextBlock';
+import {KnownBlockable} from './block/SlackBlock';
+import {TextBlock} from './block/TextBlock';
+import {Channel} from './Channel';
+import {EntityExtractor} from './extractor/EntityExtractor';
+import {HashtagExtractor} from './extractor/HashtagExtractor';
+import {MediaExtractor} from './extractor/MediaExtractor';
+import {MentionsExtractor} from './extractor/MentionsExtractor';
+import {SymbolsExtractor} from './extractor/SymbolsExtractor';
+import {UrlsExtractor} from './extractor/UrlsExtractor';
+import {FeedChannel} from './FeedStore';
+import {PostableMessage} from './PostableMessage';
+import {RenderOptions} from './SlackBot';
+import {SlackFormatBuilder} from './SlackFormatBuilder';
 import {
   DelayedRenderActions,
   FOLLOW_EMOJI_DEFAULT,
   SlackTweetFormatter,
   TweetRenderingFlags
 } from './SlackTweetFormatter';
-import {Channel} from './Channel';
-import {FeedChannel} from './FeedStore';
-import {RenderOptions} from './SlackBot';
-import {EntityExtractor} from './extractor/EntityExtractor';
-import {HashtagExtractor} from './extractor/HashtagExtractor';
-import {UrlsExtractor} from './extractor/UrlsExtractor';
-import {MediaExtractor} from './extractor/MediaExtractor';
-import {MentionsExtractor} from './extractor/MentionsExtractor';
-import {SymbolsExtractor} from './extractor/SymbolsExtractor';
-import {MediaTranscoder} from '../aphelocoma/MediaTranscoder';
 
 export interface Chunk {
   converted: string;
@@ -83,7 +83,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     if (tweet.created != null) {
       fields.push(new MarkdownTextBlock(`${quote}_Sent: ${getLongDateTime(tweet.created)}_`));
     }
-    fields.push(new MarkdownTextBlock(`${quote}_ID: ${tweet.user.name ? this.twitterUrl(tweet.user.name, tweet.id) : tweet.id}_`));
+    fields.push(new MarkdownTextBlock(`${quote}_ID: ${this.tweetIdLink(tweet.user.name, tweet.id)}_`));
     if (tweet.replyUser != null) {
       const originalLink = `<${this.twitterUrl(tweet.replyUser, tweet.replyTweetId)}|_In reply to ${tweet.replyUser}_>`;
       fields.push(new MarkdownTextBlock(`${quote}${originalLink}`));
@@ -223,6 +223,14 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
       // https://webapps.stackexchange.com/questions/86557/how-do-i-escape-formatting-characters-in-slack
       .replace(/([\\_*~`])/g, '\u00ad$1')
       ;
+  }
+
+  public tweetIdLink(username: string | undefined, statusId: string): string {
+    if (username == null) {
+      return statusId;
+    }
+    const link = this.twitterUrl(username, statusId);
+    return `<${link}|${statusId}>`;
   }
 
   public twitterUrl(username: string, statusId?: string): string {

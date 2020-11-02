@@ -1,3 +1,4 @@
+import {WebAPICallResult} from '@slack/web-api';
 import {DirectMessage} from './DirectMessage';
 import {Channel} from './Channel';
 import {PostableMessage} from './PostableMessage';
@@ -34,6 +35,8 @@ export interface SlackClient {
   replyTo(regex: RegExp, messageSupplier: EventuallyPostable, thread?: boolean): this;
 
   send(...messages: PostableMessage[]): Promise<void>;
+
+  sendWithResult<T>(resultConverter: (result: WebAPICallResult) => T, ...messages: PostableMessage[]): Promise<T>;
 
   setTopic(channel: Channel, topic: string): Promise<boolean>;
 

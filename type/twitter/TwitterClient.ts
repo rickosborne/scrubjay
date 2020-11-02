@@ -1,7 +1,6 @@
+import {injectableType} from 'inclined-plane';
 import {Tweet} from './Tweet';
 import {TwitterUser} from './TwitterUser';
-import {injectableType} from 'inclined-plane';
-import {TweetJSON} from './store/TwitterEventStore';
 
 export type TweetCallback = (tweet: Tweet) => void;
 
@@ -23,6 +22,8 @@ export interface TwitterClient {
   addUsers(...users: TwitterUser[]): this;
 
   connect(backoff?: number): void;
+
+  fetchTweet(id: string): Promise<Tweet | undefined>;
 
   fetchUser(name: string): Promise<TwitterUser>;
 
