@@ -83,7 +83,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     if (tweet.created != null) {
       fields.push(new MarkdownTextBlock(`${quote}_Sent: ${getLongDateTime(tweet.created)}_`));
     }
-    fields.push(new MarkdownTextBlock(`${quote}_ID: ${tweet.id}_`));
+    fields.push(new MarkdownTextBlock(`${quote}_ID: ${tweet.user.name ? this.twitterUrl(tweet.user.name, tweet.id) : tweet.id}_`));
     if (tweet.replyUser != null) {
       const originalLink = `<${this.twitterUrl(tweet.replyUser, tweet.replyTweetId)}|_In reply to ${tweet.replyUser}_>`;
       fields.push(new MarkdownTextBlock(`${quote}${originalLink}`));
