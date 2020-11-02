@@ -1,7 +1,7 @@
 var path = require('path');
 
 module.exports = {
-  mode: 'development',
+  mode: 'none',
   entry: './feeder.ts',
   devtool: 'inline-source-map',
   module: {

@@ -4,7 +4,7 @@ const webpack = require('webpack');
 
 module.exports = {
     context: __dirname,
-    mode: 'development',
+    mode: 'none',
     entry: './slash-lambda.ts',
     // externals: [
     //     nodeExternals(),
