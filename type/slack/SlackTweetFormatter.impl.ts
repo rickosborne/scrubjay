@@ -226,10 +226,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
   }
 
   public tweetIdLink(username: string | undefined, statusId: string): string {
-    if (username == null) {
-      return statusId;
-    }
-    const link = this.twitterUrl(username, statusId);
+    const link = this.twitterUrl(username || 'i', statusId);
     return `<${link}|${statusId}>`;
   }
 
