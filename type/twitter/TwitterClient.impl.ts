@@ -126,7 +126,10 @@ export class TwitterClientImpl implements TwitterClient {
     if (this.twitter == null) {
       throw new Error(`No Twitter client to look up tweet \`${id}\`.`);
     }
-    return this.twitter.get('statuses/show', {id})
+    return this.twitter.get('statuses/show', {
+      id,
+      include_entities: true
+    })
       .then(response => {
         if (response == null) {
           return undefined;
