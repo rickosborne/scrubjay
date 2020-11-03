@@ -60,5 +60,5 @@
     "test": "TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' node ./node_modules/.bin/ts-mocha --timeout 30000 test/**/*.ts",
     "un-prestart": "npm run package"
   },
-  "version": "0.5.5"
+  "version": "0.5.6"
 }

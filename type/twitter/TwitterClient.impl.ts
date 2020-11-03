@@ -128,7 +128,8 @@ export class TwitterClientImpl implements TwitterClient {
     }
     return this.twitter.get('statuses/show', {
       id,
-      include_entities: true
+      include_entities: true,
+      tweet_mode: 'extended',
     })
       .then(response => {
         if (response == null) {

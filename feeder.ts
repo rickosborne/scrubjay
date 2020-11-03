@@ -71,7 +71,9 @@ class FeederImpl {
     for (const tweet of newTweets) {
       if (tweet != null && tweet.source != null) {
         this.env.debug(() => `FeederImpl.handleTweet ${tweet.id} @${tweet.user.name} ${tweet.longText}`);
-        const fullTweet = await (fetchFull ? Promise.resolve(tweet) : this.twitterClient.fetchTweet(tweet.id));
+        const fullTweet = await (fetchFull || tweet.truncated ?
+          this.twitterClient.fetchTweet(tweet.id) :
+          Promise.resolve(tweet));
         if (fullTweet != null) {
           await queue.add(fullTweet.source);
           await this.tweetStore.store(fullTweet);
