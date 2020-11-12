@@ -3,7 +3,7 @@ import {Logger, LogSwitch, LogSwitchLevel} from './Logger';
 const CONSOLE_LEVELS = {
   [LogSwitchLevel.INFO]: console.info,
   [LogSwitchLevel.ERROR]: console.error,
-}
+};
 
 @LogSwitch.implementation
 export class LogSwitchImpl implements LogSwitch {

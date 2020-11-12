@@ -16,7 +16,7 @@ import './type/aphelocoma/MediaTranscoder.impl';
 import './type/slack/SlackClient.impl';
 import './type/slack/SlackTweetFormatter.impl';
 import './type/slack/FeedStore.impl';
-import {LogSwitch} from "./type/Logger";
+import {LogSwitch} from './type/Logger';
 import {Tweet} from './type/twitter/Tweet';
 import {OnAvailableResult, SQSAdapter, TypedQueue} from './type/aws/SQS';
 import {buildInstance} from 'inclined-plane';
@@ -48,12 +48,12 @@ class SongImpl {
     }
     const tweetImpl = Tweet.fromObject(tweet);
     if (tweetImpl == null) {
-      this.logSwitch.error(`SongImpl.onTweet: Failed to reify Tweet: ${JSON.stringify(tweet)}`)
+      this.logSwitch.error(`SongImpl.onTweet: Failed to reify Tweet: ${JSON.stringify(tweet)}`);
       return Promise.resolve(OnAvailableResult.ERROR);
     }
     const postables = await this.tweetFormatter.messagesFromTweet(tweetImpl, {followEmoji});
     if (!Array.isArray(postables)) {
-      this.logSwitch.error(`SongImpl.onTweet: Failed to format tweet: ${JSON.stringify(tweetImpl)}`)
+      this.logSwitch.error(`SongImpl.onTweet: Failed to format tweet: ${JSON.stringify(tweetImpl)}`);
       return Promise.resolve(OnAvailableResult.ERROR);
     }
     const tweetId = tweetImpl.id;

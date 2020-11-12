@@ -47,7 +47,7 @@
     "clean": "rm -Rf dist",
     "compile": "tsc",
     "lint": "tslint -c tslint.json -p tsconfig.json --fix",
-    "package": "npm run package:scrubjay && npm run package:feeder && npm run package:song && npm run package:slash-lambda",
+    "package": "npm run package:feeder && npm run package:song && npm run package:slash-lambda",
     "package:scrubjay": "NODE_OPTIONS='--max_old_space_size=1024' webpack-cli --config song.webpack.config.js",
     "package:slash-lambda": "NODE_OPTIONS='--max_old_space_size=1024' webpack-cli --config slash-lambda.webpack.config.js",
     "package:song": "NODE_OPTIONS='--max_old_space_size=1024' webpack-cli --config song.webpack.config.js",
