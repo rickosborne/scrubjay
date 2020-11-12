@@ -17,7 +17,7 @@ export function stringify(value: any): string {
       return (value.name == null || value.name === '') ? '(() => {})' : `(${value.name}(){})`;
     case 'object':
       if (value instanceof Error) {
-        return `!!! ${value.message}`;
+        return `!!! ${value.message} !!! ${value.stack}`;
       }
       if (Array.isArray(value)) {
         return JSON.stringify(value.map(val => stringify(val)), null, 2);

@@ -1,5 +1,10 @@
 import {injectableType} from 'inclined-plane';
 
+export enum LogSwitchLevel {
+  ERROR = 'ERROR',
+  INFO = 'INFO',
+}
+
 export type Logger = (message?: any, ...optionalParams: any[]) => void;
 
 export interface LogSwitch {

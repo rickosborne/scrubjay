@@ -18,7 +18,11 @@ class TwitterEventStoreImpl extends MysqlClient implements TwitterEventStore {
       ORDER BY created DESC
     `, params)
       .fetch<{data: string}>()
-      .then(rows => rows == null || rows.length < 1 ? null : Tweet.fromObject(rows[0].data));
+      .then(rows => rows == null || rows.length < 1 ? null : rows[0].data)
+      .then(data => data == null ? null : Tweet.fromObject(data))
+      .catch(e => {
+        throw new Error(`Could not findOneOrNull: ${e.message}`);
+      });
   }
 
   latest(retweetsAcceptable: boolean = false, repliesAcceptable: boolean = false): Promise<Tweet | undefined> {

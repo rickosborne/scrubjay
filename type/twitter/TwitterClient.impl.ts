@@ -86,7 +86,7 @@ export class TwitterClientImpl implements TwitterClient {
           stream.on('data', maybeTweet => {
             try {
               let logEvent = false;
-              const tweet = Tweet.fromObject(maybeTweet);
+              const tweet = maybeTweet == null ? null : Tweet.fromObject(maybeTweet);
               if (tweet != null) {
                 this._tweetsSinceLastConnect++;
                 env.debug(() => `@${tweet.user.name}: ${tweet.text.replace(/\s+/g, ' ')}`);
@@ -164,6 +164,8 @@ export class TwitterClientImpl implements TwitterClient {
         screen_name: user.name,
         count: count
       })
-      .then(response => Array.isArray(response) ? response.map(item => Tweet.fromObject(item)) : []);
+      .then(response => {
+        return Array.isArray(response) ? response.map(item => item == null ? item : Tweet.fromObject(item)) : [];
+      });
   }
 }

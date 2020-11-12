@@ -130,7 +130,11 @@ export abstract class MysqlClient {
         if (this.env != null) {
           this.env.debug(`MysqlClient(${className}): Creating connection ${this.connectionId}`);
         }
-        conn = MysqlClient.db(mysql2ConnectionOptions.getInstance());
+        conn = MysqlClient.db(mysql2ConnectionOptions.getInstance(), e => {
+          if (this.env != null) {
+            this.env.debug('Failed to get DB instance', e);
+          }
+        });
         this._db = conn;
       }
       return Promise.resolve(conn);
@@ -184,9 +188,17 @@ export abstract class MysqlClient {
   @mysql2Connection.supplier
   protected static db(
     @mysql2ConnectionOptions.required connectionOptions: mysql2.ConnectionOptions,
+    onError?: (e: any) => void,
     adapter: MysqlAdapter = mysql2,
   ): Promise<mysql2.Connection> {
-    return adapter.createConnection(connectionOptions);
+    try {
+      return adapter.createConnection(connectionOptions);
+    } catch (e) {
+      if (onError != null) {
+        onError(e);
+      }
+      return adapter.createConnection(connectionOptions);
+    }
   }
 
   public findObject<T>(type: FromObject<T>, sql: string, params: any[] = []): Promise<T | null> {

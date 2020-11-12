@@ -25,7 +25,7 @@ describe('MysqlClient', () => {
         }
       };
       super(logCallback);
-      this._db = MysqlClient.db(connectionOptions, adapter);
+      this._db = MysqlClient.db(connectionOptions, e => console.error('Failed to connect to DB', e), adapter);
       this.dbAdapter = adapter;
     }
 

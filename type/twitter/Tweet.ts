@@ -58,7 +58,7 @@ export class Tweet {
 
   static fromObject(object: {}): Tweet {
     return buildFromObject(Tweet, object)
-      .string('text', true)
+      .string(['full_text', 'text'], true)
       .obj('user', TwitterUser, true)
       .string('id_str', true)
       .date('created_at', false)
@@ -74,7 +74,7 @@ export class Tweet {
       .scalar(['in_reply_to_user_id_str', 'in_reply_to_user_id'], null, false)
       .obj('retweeted_status', Tweet, false)
       .source()
-      .orThrow((message) => new Error(`Could not create Tweet: ${message}`));
+      .orThrow((message) => new Error(`Could not create Tweet: ${message}\n${JSON.stringify(object)}`));
   }
 
   public static unescapeText(s: string): string {

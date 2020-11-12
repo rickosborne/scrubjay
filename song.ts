@@ -16,6 +16,7 @@ import './type/aphelocoma/MediaTranscoder.impl';
 import './type/slack/SlackClient.impl';
 import './type/slack/SlackTweetFormatter.impl';
 import './type/slack/FeedStore.impl';
+import {LogSwitch} from "./type/Logger";
 import {Tweet} from './type/twitter/Tweet';
 import {OnAvailableResult, SQSAdapter, TypedQueue} from './type/aws/SQS';
 import {buildInstance} from 'inclined-plane';
@@ -35,20 +36,24 @@ class SongImpl {
     @FeedStore.required private readonly feedStore: FeedStore,
     @SlackTweetFormatter.required private readonly tweetFormatter: SlackTweetFormatter,
     @ScrubjayConfigStore.required private readonly configStore: ScrubjayConfigStore,
+    @LogSwitch.required private readonly logSwitch: LogSwitch,
   ) {
-    env.debug(() => `Song`);
+    this.logSwitch.info(`Song`);
     this.tweetQueue = sqsAdapter.queueForType<TweetJSON>(TweetJSON);
   }
 
   protected async onTweet(tweet: TweetJSON, followEmoji?: string | null): Promise<OnAvailableResult> {
+    if (tweet == null) {
+      return Promise.resolve(OnAvailableResult.ERROR);
+    }
     const tweetImpl = Tweet.fromObject(tweet);
     if (tweetImpl == null) {
-      this.env.debug(() => `SongImpl.onTweet: Failed to reify Tweet: ${JSON.stringify(tweet)}`);
+      this.logSwitch.error(`SongImpl.onTweet: Failed to reify Tweet: ${JSON.stringify(tweet)}`)
       return Promise.resolve(OnAvailableResult.ERROR);
     }
     const postables = await this.tweetFormatter.messagesFromTweet(tweetImpl, {followEmoji});
     if (!Array.isArray(postables)) {
-      this.env.debug(() => `SongImpl.onTweet: Failed to format tweet: ${JSON.stringify(tweetImpl)}`);
+      this.logSwitch.error(`SongImpl.onTweet: Failed to format tweet: ${JSON.stringify(tweetImpl)}`)
       return Promise.resolve(OnAvailableResult.ERROR);
     }
     const tweetId = tweetImpl.id;
@@ -65,7 +70,7 @@ class SongImpl {
               return this.feedStore
                 .delivered(channel, tweetId, maybeTs)
                 .then(() => {
-                  this.env.debug(() => `SongImpl.onTweet delivered ${tweetImpl.id}`);
+                  this.logSwitch.info(`SongImpl.onTweet delivered ${tweetImpl.id}`);
                   return OnAvailableResult.HANDLED;
                 });
             });
@@ -73,7 +78,7 @@ class SongImpl {
       }))
         .then(() => OnAvailableResult.HANDLED)
         .catch((err) => {
-          this.env.debug('SongImpl.onTweet', err);
+          this.logSwitch.error('SongImpl.onTweet', err);
           return OnAvailableResult.ERROR;
         });
     });
