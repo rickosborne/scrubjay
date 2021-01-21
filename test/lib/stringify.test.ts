@@ -13,7 +13,7 @@ describe('stringify', () => {
   it('handles decimals', () => expect(stringify(12.34)).equals('12.34'));
   it('handles named functions', () => expect(stringify(function foo () {})).equals('(foo(){})'));
   it('handles anonymous functions', () => expect(stringify(function () {})).equals('(() => {})'));
-  it('handles errors', () => expect(stringify(new Error('some message'))).equals('!!! some message'));
-  it('handles arrays', () => expect(stringify([123, new Error('some message')])).equals('[\n  "123",\n  "!!! some message"\n]'));
+  it('handles errors', () => expect(stringify(new Error('some message'))).include('!!! some message'));
+  it('handles arrays', () => expect(stringify([123, new Error('some message')])).include('[\n  "123",\n  "!!! some message'));
   it('handles objects', () => expect(stringify({foo: 'bar'})).equals('{\n  "foo": "bar"\n}'));
 });
