@@ -116,7 +116,7 @@ describe('SlackTweetFormatter', () => {
       const messages = await formatter.messagesFromTweet(tweetQuotedWithEmojis);
       const texts = textsFromMessages(messages);
       expect(texts).deep.equals([
-        "*<https://twitter.com/Marisha_Ray|:bird:Marisha_Ray>* (Marisha Ray):\n?\n>Quoted *<https://twitter.com/quortknee|:bird:quortknee>* (courtney?):\n>Finished up my _#CriticalRoleRedraw_ ! Left is from 2019, right is from 2016! ?\n>Keyleth is still extremely important to me, I will always be thankful to <https://twitter.com/Marisha_Ray|:bird:Marisha_Ray> for creating such a wonderful character.  Much love ♥️ _#CriticalRole_ _#criticalrolefanart_ <https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg|pic.twitter.com/7oU8eLD41B> <https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg|pic.twitter.com/7oU8eLD41B>",
+        "*<https://twitter.com/Marisha_Ray|:bird:Marisha_Ray>* (Marisha Ray):\n?\n>\n>Quoted *<https://twitter.com/quortknee|:bird:quortknee>* (courtney?):\n>Finished up my _#CriticalRoleRedraw_ ! Left is from 2019, right is from 2016! ?\n>Keyleth is still extremely important to me, I will always be thankful to <https://twitter.com/Marisha_Ray|:bird:Marisha_Ray> for creating such a wonderful character.  Much love ♥️ _#CriticalRole_ _#criticalrolefanart_ <https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg|pic.twitter.com/7oU8eLD41B> <https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg|pic.twitter.com/7oU8eLD41B>",
         "<https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg>",
         "<https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg>",
       ]);
@@ -162,7 +162,7 @@ describe('SlackTweetFormatter', () => {
     const messages = await formatter.messagesFromTweet(failingTweet1);
     const texts = textsFromMessages(messages);
     expect(texts).to.deep.equal([
-      "*<https://twitter.com/PocketGina|:bird:PocketGina>* (Gina DeVivo):\nWOOOOOOO\n>Quoted *<https://twitter.com/DiMRPG|:bird:DiMRPG>* (Descent Into Midnight):\n>We’ve hit our first stretch goal! Every backer gets the _#DiMRPG_ inspired coloring book PDF, plus a One Shot of DiM played by the incredible _#Streampunks_! At $35,000, we unlock an additional ep, printable Corruption/Harmony tokens, and files for 3D printer &amp; laser cutter tokens! <https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg|pic.twitter.com/xE1kpAjhrr>",
+      "*<https://twitter.com/PocketGina|:bird:PocketGina>* (Gina DeVivo):\nWOOOOOOO\n>\n>Quoted *<https://twitter.com/DiMRPG|:bird:DiMRPG>* (Descent Into Midnight):\n>We’ve hit our first stretch goal! Every backer gets the _#DiMRPG_ inspired coloring book PDF, plus a One Shot of DiM played by the incredible _#Streampunks_! At $35,000, we unlock an additional ep, printable Corruption/Harmony tokens, and files for 3D printer &amp; laser cutter tokens! <https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg|pic.twitter.com/xE1kpAjhrr>",
       "<https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg>",
       "<https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg>",
       "<https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg>",
@@ -178,14 +178,15 @@ describe('SlackTweetFormatter', () => {
 *<https://twitter.com/wcruz73|:bird:wcruz73>* (Wilson Cruz) retweeted:
 >*<https://twitter.com/JonathanDelArco|:bird:JonathanDelArco>* (Jonathan Del Arco):
 >Blown away!
->>Quoted *<https://twitter.com/wcruz73|:bird:wcruz73>* (Wilson Cruz):
->>“...while democracy can be periodically delayed,
->>It can never be permanently defeated.
->>In this truth, in this faith we trust.
->>For while we have our eyes on the future,
->>History has its eyes on us. - <https://twitter.com/TheAmandaGorman|:bird:TheAmandaGorman> 
->>
->> _#InaugurationDay_ <https://pbs.twimg.com/media/EsMSj6RXYAMv9Bp.jpg|pic.twitter.com/9NNWdRoob0>
+>
+>Quoted *<https://twitter.com/wcruz73|:bird:wcruz73>* (Wilson Cruz):
+>“...while democracy can be periodically delayed,
+>It can never be permanently defeated.
+>In this truth, in this faith we trust.
+>For while we have our eyes on the future,
+>History has its eyes on us. - <https://twitter.com/TheAmandaGorman|:bird:TheAmandaGorman> 
+>
+> _#InaugurationDay_ <https://pbs.twimg.com/media/EsMSj6RXYAMv9Bp.jpg|pic.twitter.com/9NNWdRoob0>
       `.trim(),
       "<https://pbs.twimg.com/media/EsMSj6RXYAMv9Bp.jpg>"
     ]);

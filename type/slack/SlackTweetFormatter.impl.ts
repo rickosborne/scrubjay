@@ -92,20 +92,20 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
       toQuote = await this.blocksFromTweet(
         builder,
         tweet.retweeted,
-        Object.assign({retweeted: true}, flags, {quote: '>' + flags.quote}),
+        Object.assign({retweeted: true}, flags, {quote: '>'}),
         later
       );
     } else if (tweet.quoted != null) {
       toQuote = await this.blocksFromTweet(
         builder,
         tweet.quoted,
-        Object.assign({quoted: true}, flags, {quote: '>' + flags.quote}),
+        Object.assign({quoted: true}, flags, {quote: '>'}),
         later
       );
     }
     const updatedFlags = Object.assign({}, flags);
     if (flags.inReplyTo || tweet.replyUser != null) {
-      updatedFlags.quote = '>' + updatedFlags.quote;
+      updatedFlags.quote = '>';
     }
     let md = await this.markdownFromTweet(tweet, updatedFlags, later);
     if (toQuote != null) {
@@ -171,7 +171,7 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     const attribution = tweet.user == null || tweet.user.name == null ? ''
       : `*${this.userLink(tweet.user.name, flags.followEmoji)}* (${this.slackEscape(tweet.user.fullName)})`;
     // const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
-    const explanation = flags.quoted ? 'Quoted ' : flags.inReplyTo ? 'Replied to ' : '';
+    const explanation = flags.quoted ? `\n${flags.quote}Quoted ` : flags.inReplyTo ? `\n${flags.quote}Replied to ` : '';
     const retweeted = tweet.retweeted == null || tweet.retweeted.user == null || tweet.retweeted.user.name == null ? ''
       : ` retweeted`;
     const lines = [`${flags.quote}${explanation}${attribution}${retweeted}:`];
