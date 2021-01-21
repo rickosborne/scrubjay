@@ -23,5 +23,8 @@
     "typeRoots": [
       "node_modules/@types"
     ]
+  },
+  "ts-node": {
+    "transpileOnly": true
   }
 }

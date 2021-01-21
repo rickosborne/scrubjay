@@ -1,19 +1,20 @@
+import {ImageElement, MrkdwnElement, PlainTextElement} from '@slack/types';
 import {expect} from 'chai';
 import {beforeEach, describe, it} from 'mocha';
+import {MediaTranscoder} from "../../type/aphelocoma/MediaTranscoder";
+import {KnownBlockable} from '../../type/slack/block/SlackBlock';
+import {PostableMessage} from '../../type/slack/PostableMessage';
 import {DelayedRenderActions, SlackTweetFormatter, TweetRenderingFlags} from '../../type/slack/SlackTweetFormatter';
 import {Chunk, SlackTweetFormatterImpl} from '../../type/slack/SlackTweetFormatter.impl';
+import {Tweet} from '../../type/twitter/Tweet';
+import {TweetEntities} from '../../type/twitter/TweetEntities';
 import {extendedTweetWithVideoJson} from '../fixture/extendedTweetWithVideo';
-import {tweetWithBrokenLinkReplacementJson} from '../fixture/tweetWithBrokenLinkReplacement';
+import {failingTweet1Json} from '../fixture/failingTweet1';
+import {retweetOfQuoteJson} from '../fixture/retweetOfQuote';
 import {tweetQuotedWithEmojisJson} from '../fixture/tweetQuotedWithEmojis';
+import {tweetWithBrokenLinkReplacementJson} from '../fixture/tweetWithBrokenLinkReplacement';
 import {tweetWithTrailingHashtagJson} from '../fixture/tweetWithTrailingHashtag';
 import {tweetWithVideoJson} from '../fixture/tweetWithVideo';
-import {failingTweet1Json} from '../fixture/failingTweet1';
-import {TweetEntities} from '../../type/twitter/TweetEntities';
-import {Tweet} from '../../type/twitter/Tweet';
-import {PostableMessage} from '../../type/slack/PostableMessage';
-import {KnownBlockable} from '../../type/slack/block/SlackBlock';
-import {ImageElement, MrkdwnElement, PlainTextElement} from '@slack/types';
-import {MediaTranscoder} from "../../type/aphelocoma/MediaTranscoder";
 
 const tweetQuotedWithEmojis: Tweet = Tweet.fromObject(tweetQuotedWithEmojisJson);
 const tweetWithVideo: Tweet = Tweet.fromObject(tweetWithVideoJson);
@@ -21,6 +22,7 @@ const extendedTweetWithVideo: Tweet = Tweet.fromObject(extendedTweetWithVideoJso
 const tweetWithBrokenLinkReplacement: Tweet = Tweet.fromObject(tweetWithBrokenLinkReplacementJson);
 const tweetWithTrailingHashtag: Tweet = Tweet.fromObject(tweetWithTrailingHashtagJson);
 const failingTweet1: Tweet = Tweet.fromObject(failingTweet1Json);
+const retweetOfQuote: Tweet = Tweet.fromObject(retweetOfQuoteJson);
 
 describe('SlackTweetFormatter', () => {
   class TestableMediaTranscoder implements MediaTranscoder {
@@ -164,6 +166,28 @@ describe('SlackTweetFormatter', () => {
       "<https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg>",
       "<https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg>",
       "<https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg>",
+    ]);
+  });
+
+  it('handles retweets of quotes', async () => {
+    const formatter = new TestableSlackTweetFormatter();
+    const messages = await formatter.messagesFromTweet(retweetOfQuote);
+    const texts = textsFromMessages(messages);
+    expect(texts).to.deep.equal([
+      `
+*<https://twitter.com/wcruz73|:bird:wcruz73>* (Wilson Cruz) retweeted:
+>*<https://twitter.com/JonathanDelArco|:bird:JonathanDelArco>* (Jonathan Del Arco):
+>Blown away!
+>>Quoted *<https://twitter.com/wcruz73|:bird:wcruz73>* (Wilson Cruz):
+>>“...while democracy can be periodically delayed,
+>>It can never be permanently defeated.
+>>In this truth, in this faith we trust.
+>>For while we have our eyes on the future,
+>>History has its eyes on us. - <https://twitter.com/TheAmandaGorman|:bird:TheAmandaGorman> 
+>>
+>> _#InaugurationDay_ <https://pbs.twimg.com/media/EsMSj6RXYAMv9Bp.jpg|pic.twitter.com/9NNWdRoob0>
+      `.trim(),
+      "<https://pbs.twimg.com/media/EsMSj6RXYAMv9Bp.jpg>"
     ]);
   });
 });

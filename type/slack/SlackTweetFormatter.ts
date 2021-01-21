@@ -11,6 +11,7 @@ export const FOLLOW_EMOJI_DEFAULT = 'bird';
 export interface TweetRenderingFlags extends RenderOptions {
   followEmoji?: string | null;
   inReplyTo?: boolean;
+  quote: string;
   quoted?: boolean;
   retweeted?: boolean;
 }
