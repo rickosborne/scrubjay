@@ -116,7 +116,14 @@ describe('SlackTweetFormatter', () => {
       const messages = await formatter.messagesFromTweet(tweetQuotedWithEmojis);
       const texts = textsFromMessages(messages);
       expect(texts).deep.equals([
-        "*<https://twitter.com/Marisha_Ray|:bird:Marisha_Ray>* (Marisha Ray):\n?\n>\n>Quoted *<https://twitter.com/quortknee|:bird:quortknee>* (courtney?):\n>Finished up my _#CriticalRoleRedraw_ ! Left is from 2019, right is from 2016! ?\n>Keyleth is still extremely important to me, I will always be thankful to <https://twitter.com/Marisha_Ray|:bird:Marisha_Ray> for creating such a wonderful character.  Much love ♥️ _#CriticalRole_ _#criticalrolefanart_ <https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg|pic.twitter.com/7oU8eLD41B> <https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg|pic.twitter.com/7oU8eLD41B>",
+        `
+*<https://twitter.com/Marisha_Ray|:bird:Marisha_Ray>* (Marisha Ray):
+?
+
+>Quoted *<https://twitter.com/quortknee|:bird:quortknee>* (courtney?):
+>Finished up my _#CriticalRoleRedraw_ ! Left is from 2019, right is from 2016! ?
+>Keyleth is still extremely important to me, I will always be thankful to <https://twitter.com/Marisha_Ray|:bird:Marisha_Ray> for creating such a wonderful character.  Much love ♥️ _#CriticalRole_ _#criticalrolefanart_ <https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg|pic.twitter.com/7oU8eLD41B> <https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg|pic.twitter.com/7oU8eLD41B>
+        `.trim(),
         "<https://pbs.twimg.com/media/D16eukOUwAIn9bN.jpg>",
         "<https://pbs.twimg.com/media/D16e4ejVYAIDorp.jpg>",
       ]);
@@ -126,7 +133,12 @@ describe('SlackTweetFormatter', () => {
       const messages: PostableMessage[] = await formatter.messagesFromTweet(tweetWithVideo);
       const texts = textsFromMessages(messages);
       expect(texts).deep.equals([
-        "*<https://twitter.com/CriticalRole|:bird:CriticalRole>* (Critical Role):\n\"You don't have to be in something forever for it to have a lasting impression on your life.\" - <https://twitter.com/MaryEMcGlynn|:bird:MaryEMcGlynn>\n\nZahra Hydris herself joins <https://twitter.com/BrianWFoster|:bird:BrianWFoster> tonight for an all-new episode of _#BetweenTheSheets_! Live at 7pm Pacific on <http://twitch.tv/criticalrole|twitch.tv/criticalrole>. <https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/320x180/gMW6lxCjMTyAdPvN.mp4|pic.twitter.com/6f25qmC9z4>",
+        `
+*<https://twitter.com/CriticalRole|:bird:CriticalRole>* (Critical Role):
+"You don't have to be in something forever for it to have a lasting impression on your life." - <https://twitter.com/MaryEMcGlynn|:bird:MaryEMcGlynn>
+
+Zahra Hydris herself joins <https://twitter.com/BrianWFoster|:bird:BrianWFoster> tonight for an all-new episode of _#BetweenTheSheets_! Live at 7pm Pacific on <http://twitch.tv/criticalrole|twitch.tv/criticalrole>. <https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/320x180/gMW6lxCjMTyAdPvN.mp4|pic.twitter.com/6f25qmC9z4>
+        `.trim(),
         "<https://video.twimg.com/ext_tw_video/1107678595399311360/pu/vid/320x180/gMW6lxCjMTyAdPvN.mp4>",
       ]);
     });
@@ -162,7 +174,13 @@ describe('SlackTweetFormatter', () => {
     const messages = await formatter.messagesFromTweet(failingTweet1);
     const texts = textsFromMessages(messages);
     expect(texts).to.deep.equal([
-      "*<https://twitter.com/PocketGina|:bird:PocketGina>* (Gina DeVivo):\nWOOOOOOO\n>\n>Quoted *<https://twitter.com/DiMRPG|:bird:DiMRPG>* (Descent Into Midnight):\n>We’ve hit our first stretch goal! Every backer gets the _#DiMRPG_ inspired coloring book PDF, plus a One Shot of DiM played by the incredible _#Streampunks_! At $35,000, we unlock an additional ep, printable Corruption/Harmony tokens, and files for 3D printer &amp; laser cutter tokens! <https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg|pic.twitter.com/xE1kpAjhrr>",
+      `
+*<https://twitter.com/PocketGina|:bird:PocketGina>* (Gina DeVivo):
+WOOOOOOO
+
+>Quoted *<https://twitter.com/DiMRPG|:bird:DiMRPG>* (Descent Into Midnight):
+>We’ve hit our first stretch goal! Every backer gets the _#DiMRPG_ inspired coloring book PDF, plus a One Shot of DiM played by the incredible _#Streampunks_! At $35,000, we unlock an additional ep, printable Corruption/Harmony tokens, and files for 3D printer &amp; laser cutter tokens! <https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg|pic.twitter.com/xE1kpAjhrr> <https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg|pic.twitter.com/xE1kpAjhrr>
+      `.trim(),
       "<https://pbs.twimg.com/media/ERCjEA-UcAA9dF9.jpg>",
       "<https://pbs.twimg.com/media/ERCjEA-U8AEuB-R.jpg>",
       "<https://pbs.twimg.com/media/ERCjEA-U0AAAzoA.jpg>",
@@ -178,7 +196,7 @@ describe('SlackTweetFormatter', () => {
 *<https://twitter.com/wcruz73|:bird:wcruz73>* (Wilson Cruz) retweeted:
 >*<https://twitter.com/JonathanDelArco|:bird:JonathanDelArco>* (Jonathan Del Arco):
 >Blown away!
->
+
 >Quoted *<https://twitter.com/wcruz73|:bird:wcruz73>* (Wilson Cruz):
 >“...while democracy can be periodically delayed,
 >It can never be permanently defeated.

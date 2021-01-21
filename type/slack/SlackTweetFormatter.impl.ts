@@ -171,10 +171,11 @@ export class SlackTweetFormatterImpl implements SlackTweetFormatter {
     const attribution = tweet.user == null || tweet.user.name == null ? ''
       : `*${this.userLink(tweet.user.name, flags.followEmoji)}* (${this.slackEscape(tweet.user.fullName)})`;
     // const explanation = flags.quoted ? 'Quoted ' : flags.retweeted ? 'Retweeted ' : flags.inReplyTo ? 'Replied to ' : '';
-    const explanation = flags.quoted ? `\n${flags.quote}Quoted ` : flags.inReplyTo ? `\n${flags.quote}Replied to ` : '';
+    const explanation = flags.quoted ? `Quoted ` : flags.inReplyTo ? `Replied to ` : '';
+    const prefix = explanation === '' ? '' : '\n';
     const retweeted = tweet.retweeted == null || tweet.retweeted.user == null || tweet.retweeted.user.name == null ? ''
       : ` retweeted`;
-    const lines = [`${flags.quote}${explanation}${attribution}${retweeted}:`];
+    const lines = [`${prefix}${flags.quote}${explanation}${attribution}${retweeted}:`];
     if (tweet.retweeted == null) {
       const originalText: string = tweet.longText;
       const entities = tweet.longTextEntities;
