@@ -47,9 +47,12 @@ export class TwitterClientImpl implements TwitterClient {
   }
 
   public addUsers(...users: TwitterUser[]): this {
-    this.userNames.push(...users.map(user => user.name || '?'));
-    env.debug(() => `Following: ${this.userNames.join(', ')}`);
-    this.userIds.push(...users.map(user => '' + user.id));
+    const nameAndId = users
+      .filter(u => u.name != null && u.id != null)
+      .map(u => ({name: u.name, id: u.id}) as { name: string, id: string });
+    this.userNames.push(...nameAndId.map(u => u.name));
+    this.userIds.push(...nameAndId.map(u => u.id));
+    env.debug(() => `Following: ${nameAndId.map(ni => `${ni.name}/${ni.id}`).join(', ')}`);
     return this;
   }
 
@@ -76,9 +79,11 @@ export class TwitterClientImpl implements TwitterClient {
         const connectMessage = 'Twitter: connect';
         env.debug(connectMessage);
         this.notifyQueue.put(connectMessage);
-        this.twitter.stream('statuses/filter', {
+        const filterParams = {
           follow: this.userIds.join(',')
-        }, stream => {
+        };
+        this.logSwitch.info(`statuses/filter ${JSON.stringify(filterParams)}`);
+        this.twitter.stream('statuses/filter', filterParams, stream => {
           this._state = TwitterClientState.CONNECTED;
           this.stream = stream;
           this._tweetsSinceLastConnect = 0;

@@ -85,12 +85,18 @@ class SongImpl {
   }
 
   public async start(): Promise<void> {
-    const queue = await this.tweetQueue;
-    const followEmoji = await this.configStore.followEmoji;
-    queue.addListener(
-      (obj) => obj,
-      (tweet) => this.onTweet(tweet, followEmoji),
-    );
+    try {
+      this.logSwitch.info(`Song starting up`);
+      const queue = await this.tweetQueue;
+      const followEmoji = await this.configStore.followEmoji;
+      queue.addListener(
+        (obj) => obj,
+        (tweet) => this.onTweet(tweet, followEmoji),
+      );
+    } catch (e) {
+      this.logSwitch.error(`Song error`, e);
+      throw e;
+    }
   }
 }
 
