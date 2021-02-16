@@ -61,7 +61,7 @@ export class MediaExtractor implements EntityExtractor<TweetMedia> {
         .filter(variant => variant != null
           && variant.url != null
           && variant.bitrate != null
-          && variant.bitrate > 0
+          // && variant.bitrate > 0
           && variant.contentType === TweetMedia.VIDEO_MP4);
       if (mp4s.length > 0) {
         const bestGif = mp4s
