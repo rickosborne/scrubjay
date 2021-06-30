@@ -8,6 +8,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {Fetcher} from "../../type/Fetcher";
 
+const CONFIG_JSON_PATH = path.join(__dirname, '../../scrubjay.conf.json');
+
 describe('MediaTranscoder', async () => {
   const FETCH_FAIL_MESSAGE = `Fetcher !`;
 
@@ -103,13 +105,15 @@ describe('MediaTranscoder', async () => {
     });
   });
 
-  it('resolves fetch', () => {
-    const test = buildContext();
-    test.transcoder.fetcher = undefined;
-    test.config.transcoderUri = JSON.parse(fs.readFileSync(path.join(__dirname, '../../scrubjay.conf.json'), {encoding: 'utf-8'})).media.transcoderUri;
-    const videoUri = 'https://video.twimg.com/tweet_video/ERFCCP0UEAA0cAr.mp4';
-    return test.transcoder.attemptTranscode(videoUri).then(transcoded => {
-      expect(transcoded).not.equals(videoUri);
+  if (fs.existsSync(CONFIG_JSON_PATH)) {
+    it('resolves fetch', () => {
+      const test = buildContext();
+      test.transcoder.fetcher = undefined;
+      test.config.transcoderUri = JSON.parse(fs.readFileSync(CONFIG_JSON_PATH, {encoding: 'utf-8'})).media.transcoderUri;
+      const videoUri = 'https://video.twimg.com/tweet_video/ERFCCP0UEAA0cAr.mp4';
+      return test.transcoder.attemptTranscode(videoUri).then(transcoded => {
+        expect(transcoded).not.equals(videoUri);
+      });
     });
-  });
+  }
 });
