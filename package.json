@@ -26,10 +26,10 @@
     "bufferutil": "4.0.3",
     "cardinal": "2.1.1",
     "chai": "4.3.4",
-    "mocha": "8.4.0",
+    "mocha": "9.2.1",
     "nyc": "15.1.0",
     "ts-loader": "9.2.3",
-    "ts-mocha": "8.0.0",
+    "ts-mocha": "9.0.2",
     "ts-node": "10.0.0",
     "tslint": "6.1.3",
     "typescript": "4.3.4",
@@ -61,5 +61,5 @@
     "test": "TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' node ./node_modules/.bin/ts-mocha --timeout 30000 test/**/*.ts",
     "un-prestart": "npm run package"
   },
-  "version": "0.5.15"
+  "version": "0.5.16"
 }
