@@ -56,7 +56,7 @@ export class QueryImpl<PARAMS> implements Query<PARAMS> {
     try {
       queryResult = await db.query(this.sql, realParams);
     } catch (e) {
-      throw new Error(`Query: ${this.sql} ; Error: ${e.message}`);
+      throw new Error(`Query: ${this.sql} ; Error: ${e instanceof Error ? e.message : String(e)}`);
     }
     const rows = Array.isArray(queryResult) ? queryResult[0] : null;
     if (this.logger != null && rows != null && ((Array.isArray(rows) && rows.length > 0) || !Array.isArray(rows))) {

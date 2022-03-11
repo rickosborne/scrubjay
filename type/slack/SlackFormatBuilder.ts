@@ -39,7 +39,7 @@ export interface ClientAction {
 // This is not defined by itself in @slack/client
 export interface ClientOptionGroup {
   label: client.PlainTextElement;
-  options: client.Option[];
+  options: client.PlainTextOption[];
 }
 
 export class SlackFormatBuilder {

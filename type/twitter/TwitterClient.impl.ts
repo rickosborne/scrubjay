@@ -112,7 +112,7 @@ export class TwitterClientImpl implements TwitterClient {
                 this.twitterEventStore.save(maybeTweet);
               }
             } catch (e) {
-              this.notifyQueue.put(`Twitter stream caught: ${e.message}`);
+              this.notifyQueue.put(`Twitter stream caught: ${e instanceof Error ? e.message : String(e)}`);
             }
           });
           stream.on('error', err => {
@@ -143,7 +143,7 @@ export class TwitterClientImpl implements TwitterClient {
         try {
           return Tweet.fromObject(response);
         } catch (e) {
-          this.logSwitch.error(`Could not fetch tweet ${id}: ${e.message}`, e);
+          this.logSwitch.error(`Could not fetch tweet ${id}: ${e instanceof Error ? e.message : '?'}`, e);
         }
       });
   }

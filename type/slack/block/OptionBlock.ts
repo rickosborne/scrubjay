@@ -15,7 +15,7 @@ export class OptionBlock extends SlackBlock {
     super(OptionBlock.TYPE, blockId);
   }
 
-  get block(): client.Option {
+  get block(): client.PlainTextOption {
     return {
       text: this.text.block,
       description: this.description == null ? undefined : this.description.block,
