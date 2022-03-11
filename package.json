@@ -20,7 +20,7 @@
     "@types/chai": "4.3.0",
     "@types/ejs": "3.1.0",
     "@types/mocha": "9.1.0",
-    "@types/mysql2": "github:types/mysql2",
+    "@types/mysql2": "github:types/mysql2#semver:1.0.0",
     "@types/node": "17.0.21",
     "@types/twitter": "1.7.1",
     "bufferutil": "4.0.6",
@@ -61,5 +61,5 @@
     "test": "TS_NODE_COMPILER_OPTIONS='{ \"module\": \"commonjs\" }' node ./node_modules/.bin/ts-mocha --timeout 30000 test/**/*.ts",
     "un-prestart": "npm run package"
   },
-  "version": "0.5.17"
+  "version": "0.5.18"
 }
