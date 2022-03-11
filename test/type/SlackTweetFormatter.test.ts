@@ -15,6 +15,7 @@ import {tweetQuotedWithEmojisJson} from '../fixture/tweetQuotedWithEmojis';
 import {tweetWithBrokenLinkReplacementJson} from '../fixture/tweetWithBrokenLinkReplacement';
 import {tweetWithTrailingHashtagJson} from '../fixture/tweetWithTrailingHashtag';
 import {tweetWithVideoJson} from '../fixture/tweetWithVideo';
+import {tweetWithEmojiThenLinkJson} from '../fixture/tweetWithEmojiThenLink';
 
 const tweetQuotedWithEmojis: Tweet = Tweet.fromObject(tweetQuotedWithEmojisJson);
 const tweetWithVideo: Tweet = Tweet.fromObject(tweetWithVideoJson);
@@ -23,6 +24,7 @@ const tweetWithBrokenLinkReplacement: Tweet = Tweet.fromObject(tweetWithBrokenLi
 const tweetWithTrailingHashtag: Tweet = Tweet.fromObject(tweetWithTrailingHashtagJson);
 const failingTweet1: Tweet = Tweet.fromObject(failingTweet1Json);
 const retweetOfQuote: Tweet = Tweet.fromObject(retweetOfQuoteJson);
+const tweetWithEmojiThenLink: Tweet = Tweet.fromObject(tweetWithEmojiThenLinkJson);
 
 describe('SlackTweetFormatter', () => {
   class TestableMediaTranscoder implements MediaTranscoder {

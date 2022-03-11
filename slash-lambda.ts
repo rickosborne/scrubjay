@@ -27,6 +27,21 @@ function respond(msg: any): Response {
     };
 }
 
+function buildClient(): TwitterClientImpl {
+    return new TwitterClientImpl(
+        TwitterConfigImpl.fromObject({
+            accessTokenKey: process.env['TWITTER_ACCESS_TOKEN_KEY'] || '',
+            accessTokenSecret: process.env['TWITTER_ACCESS_TOKEN_SECRET'] || '',
+            consumerKey: process.env['TWITTER_CONSUMER_KEY'] || '',
+            consumerSecret: process.env['TWITTER_CONSUMER_SECRET'] || ''
+        }),
+        undefined as any,
+        undefined as any,
+        undefined as any,
+        new LogSwitchImpl(),
+    );
+}
+
 export const handler = async function (
     event: APIGatewayEvent,
     context: Context,
@@ -84,7 +99,7 @@ export const handler = async function (
         const commandText = unescape((bodyParts['text'] as string) || '');
         const commandParts = commandText.split(/\s+/g);
         if (commandText === '' || commandText === 'help' || (commandParts.length > 0 && commandParts[0] === 'help')) {
-            return respond('Usage:\n`/twit json twitName`\n`/twit echo`');
+            return respond('Usage:\n`/twit json twitName`\n`/twit echo`\n`/twit tweet id`');
         }
         switch (commandParts[0]) {
             case 'json':
@@ -108,23 +123,22 @@ export const handler = async function (
                 // if (existingTwit.Item != null) {
                 //     return respond('That twit is already followed: `' + twitName + '`');
                 // }
-                const twitterClient = new TwitterClientImpl(
-                    TwitterConfigImpl.fromObject({
-                        accessTokenKey: process.env['TWITTER_ACCESS_TOKEN_KEY'] || '',
-                        accessTokenSecret: process.env['TWITTER_ACCESS_TOKEN_SECRET'] || '',
-                        consumerKey: process.env['TWITTER_CONSUMER_KEY'] || '',
-                        consumerSecret: process.env['TWITTER_CONSUMER_SECRET'] || ''
-                    }),
-                    undefined as any,
-                    undefined as any,
-                    undefined as any,
-                    new LogSwitchImpl(),
-                );
-                const twit = await twitterClient.fetchUser(twitName);
+                const twit = await buildClient().fetchUser(twitName);
                 if (twit == null) {
                     return respond('Could not find that twit: `' + twitName + '`');
                 }
                 return respond(twit);
+            case 'tweet':
+                const tweetId = commandParts[1];
+                if (commandParts.length !== 2 || tweetId == null || !tweetId.match(/^[0-9]+$/)) {
+                    return respond('Usage: `/twit tweet id`\nCommand: `' +
+                        JSON.stringify(commandParts) + '`\nId: `' + tweetId + '`');
+                }
+                const tweet = await buildClient().fetchTweet(tweetId);
+                if (tweet == null) {
+                    return respond('Could not find that tweet: `' + tweetId + '`');
+                }
+                return respond(tweet);
             case 'echo':
                 return respond(bodyParts);
             case 'unpublish':

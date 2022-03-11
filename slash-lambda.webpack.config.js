@@ -23,8 +23,10 @@ module.exports = {
     output: {
         path: path.join(__dirname, './dist'),
         filename: 'slash-lambda.js',
-        library: 'slash-lambda',
-        libraryTarget: 'commonjs2'
+        library: {
+            name: 'index',
+            type: 'commonjs-static'
+        },
     },
     target: 'node',
     resolve: {
