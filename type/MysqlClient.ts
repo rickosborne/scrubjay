@@ -87,7 +87,11 @@ export class QueryImpl<PARAMS> implements Query<PARAMS> {
             dataRows.push(<mysql2.RowDataPacket>row);
             break;
           default:
-            throw new Error(`Unknown result type in ${this.sql}: ${JSON.stringify(row)}`);
+            if (typeof row === 'object') {
+              dataRows.push(<mysql2.RowDataPacket>row);
+            } else {
+              throw new Error(`Unknown result type in ${this.sql}: ${JSON.stringify(row)}`);
+            }
         }
       }
       split.rows = dataRows;
