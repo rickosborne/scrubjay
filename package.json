@@ -26,7 +26,7 @@
     "bufferutil": "4.0.6",
     "cardinal": "2.1.1",
     "chai": "4.3.6",
-    "mocha": "9.2.1",
+    "mocha": "9.2.2",
     "nyc": "15.1.0",
     "ts-loader": "9.2.8",
     "ts-mocha": "9.0.2",
